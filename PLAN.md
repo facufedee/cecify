@@ -42,7 +42,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 - [x] 1.1 Editar perfil (foto principal y extra, bio, intereses, contacto, ocultar mi perfil)
 - [x] 1.2 Bloquear, reportar y deshacer match
 - [x] 1.2b Roles y modos: `guest` / `admin` / `superadmin`; cada invitado elige si quiere conocer gente o solo compartir momentos, qué busca (conocer a alguien / pareja de baile) y de parte de quién viene (Cecilia / Lucas / de los dos)
-- [ ] 1.3 Entrar con un enlace/QR (`/login?email=…&code=…`) y tarjetas imprimibles con QR
+- [x] 1.3 Entrar con un enlace/QR (`/login#e=…&c=…`, en el fragmento y no en `?`) y tarjetas de invitación imprimibles con QR (sección Invitaciones del panel)
 - [x] 1.4 Panel de administración `/admin`: métricas del evento, reportes (con copia de lo reportado), lista de invitados (alta, CSV, códigos, roles, eliminar), moderación (borrar fotos, comentarios e historias) y registro de acciones
 
 ### Fase 2 — Pulido
@@ -62,6 +62,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 ## Decisiones que voy a tomar por defecto (avisá si preferís otra)
 - **Admin:** es un usuario con `role = 'admin'` o `'superadmin'` (no una contraseña compartida). Localmente `dev@` es superadmin y `demo2` admin.
 - **Roles:** `guest` (invitado), `admin` (modera, carga invitados, ve reportes) y `superadmin` (lo mismo + nombrar/quitar admins; los novios). Siempre tiene que quedar un superadmin. El rol se lee de la base en cada pedido, no del token.
+- **Enlace de invitación:** email y código van en el fragmento (`#`), que el navegador no manda al servidor; así no quedan en logs ni en el "referrer". La pantalla de login lo lee, lo borra de la barra y entra sola; si el código no sirve, muestra el formulario con los datos cargados. Quien tenga el enlace tiene acceso, igual que con el código. El QR se genera en el navegador (nada sale a servicios externos).
 - **Panel:** admin y superadmin ven todo lo mismo, salvo dos cosas que son solo del superadmin: cambiar roles y leer la copia de una conversación reportada (es lo más privado que se guarda). Un admin no se puede eliminar como invitado: primero se le quita el rol.
 - **Eliminar un invitado** borra su cuenta y todo lo suyo (perfil, fotos, comentarios, historias, matches y chats). No puede volver a iniciar sesión, y la app lo saca al recargar (`/api/profiles/me` le responde 401). **Limitación:** el token que ya tenía sigue leyendo el muro, las historias y los matches hasta que vence (12 h) y no puede escribir nada; se cierra del todo con la 2.3 (revocar sesiones). Los archivos de las fotos quedan huérfanos en el storage hasta la 3.3.
 - **Modo "solo compartir momentos":** el perfil no aparece en Descubrir, no puede dar likes ni recibir matches nuevos y no ve las pestañas Descubrir/Matches (si ya tenía matches, la pestaña Matches se queda). Muro e historias funcionan igual. Se puede cambiar cuando quiera desde Editar perfil.

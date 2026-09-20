@@ -86,7 +86,10 @@ Decisiones de diseño que conviene conocer:
   (`requireRole` en `lib/api-auth.ts`), no del token. El *modo* lo elige cada invitado: quien elige solo muro e historias
   (`wants_match = false`) queda fuera de Descubrir y de los matches; lo aplica SQL (`discover_profiles`, `record_swipe`), no
   solo la pantalla. Solo un superadmin cambia roles (`set_user_role`) y siempre queda al menos uno.
-- **Panel de administración** (`/admin`): Resumen, Reportes, Invitados y Contenido. Las rutas `/api/admin/*` empiezan con
+- **Invitaciones:** cada invitado puede entrar con un enlace o un QR (`/login#e=email&c=codigo`). El panel imprime las
+  tarjetas (8 por hoja A4, con el QR) desde *Invitaciones*, y en *Invitados* se copia el enlace o se abre un correo listo
+  para enviar. Antes de imprimir hay que poner en esa pantalla la dirección **pública** de la app.
+- **Panel de administración** (`/admin`): Resumen, Reportes, Invitados, Invitaciones y Contenido. Las rutas `/api/admin/*` empiezan con
   `adminOnly` (`lib/admin-api.ts`) y cada función SQL `admin_*` vuelve a comprobar el rol, así que un token viejo o una ruta
   olvidada no alcanzan. Lo que hace cada administrador queda en `admin_actions`.
 - **Los contactos solo se revelan tras un match** y nunca salen de la API de Descubrir.

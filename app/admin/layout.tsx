@@ -13,6 +13,7 @@ const TABS = [
   { href: '/admin', label: 'Resumen' },
   { href: '/admin/reports', label: 'Reportes' },
   { href: '/admin/guests', label: 'Invitados' },
+  { href: '/admin/invitations', label: 'Invitaciones' },
   { href: '/admin/content', label: 'Contenido' },
 ]
 
@@ -48,7 +49,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-neutral-50 text-neutral-800">
-      <header className="border-b border-neutral-200 bg-white">
+      <header className="border-b border-neutral-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">CL</span>
           <div className="min-w-0 flex-1">
@@ -80,7 +81,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
     </div>
   )
 }

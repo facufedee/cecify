@@ -2,12 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Copy, Download, Loader2, Plus, Search, Upload } from 'lucide-react'
+import { Copy, Download, Loader2, Mail, Plus, Search, Upload } from 'lucide-react'
 import { useMe } from '@/components/app/MeProvider'
 import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Modal, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db-admin'
 import { prettyCode } from '@/lib/format'
+import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
 
@@ -314,6 +315,30 @@ function EditGuestModal({
           <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('code')}>
             Generar un código nuevo
           </button>
+        </div>
+
+        <div>
+          <span className="mb-1 block font-medium">Enlace de invitación</span>
+          <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={btn.secondary}
+              onClick={async () =>
+                notify(
+                  (await copy(inviteUrl(window.location.origin, guest.email, code))) ? 'Enlace copiado' : 'No se pudo copiar'
+                )
+              }
+            >
+              <Copy size={15} /> Copiar enlace
+            </button>
+            <a
+              className={btn.secondary}
+              href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
+            >
+              <Mail size={15} /> Enviar por email
+            </a>
+          </div>
         </div>
 
         {isSuper && guest.userId && (
