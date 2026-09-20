@@ -1,4 +1,4 @@
-import { supabaseServer } from '@/lib/supabase'
+import { findGuest, upsertUser } from '@/lib/db'
 import { generateToken } from '@/lib/auth'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 
@@ -46,29 +46,12 @@ export async function POST(req: Request) {
   if (!perEmail.ok) return tooMany(perEmail.retryAfter)
 
   try {
-    const supabase = supabaseServer()
-
-    const { data: guest, error: guestError } = await supabase
-      .from('guests')
-      .select('id')
-      .eq('email', normalizedEmail)
-      .eq('access_code', normalizedCode)
-      .maybeSingle()
-
-    if (guestError) throw guestError
+    const guest = await findGuest(normalizedEmail, normalizedCode)
     if (!guest) {
       return Response.json({ error: 'Email o código incorrecto' }, { status: 401 })
     }
 
-    // Crea el user en el primer login; no toca role si ya existe
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .upsert({ email: normalizedEmail }, { onConflict: 'email' })
-      .select('id, email, role')
-      .single()
-
-    if (userError) throw userError
-
+    const user = await upsertUser(normalizedEmail)
     const token = generateToken(user.id, user.role)
     return Response.json({
       token,
