@@ -41,6 +41,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 ### Fase 1 — Lo que falta para los invitados
 - [x] 1.1 Editar perfil (foto principal y extra, bio, intereses, contacto, ocultar mi perfil)
 - [x] 1.2 Bloquear, reportar y deshacer match
+- [x] 1.2b Roles y modos: `guest` / `admin` / `superadmin`; cada invitado elige si quiere conocer gente o solo compartir momentos, qué busca (conocer a alguien / pareja de baile) y de parte de quién viene (Cecilia / Lucas / de los dos)
 - [ ] 1.3 Entrar con un enlace/QR (`/login?email=…&code=…`) y tarjetas imprimibles con QR
 - [ ] 1.4 Panel de administración `/admin`: lista de invitados (alta, CSV, códigos), moderación (borrar fotos, comentarios e historias), reportes, métricas del evento
 
@@ -59,6 +60,8 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 - [ ] 3.4 Monitoreo de errores y copia de seguridad de la base
 
 ## Decisiones que voy a tomar por defecto (avisá si preferís otra)
-- **Admin:** es un usuario con `role = 'admin'` (no una contraseña compartida). Localmente la cuenta `dev@` será admin.
+- **Admin:** es un usuario con `role = 'admin'` o `'superadmin'` (no una contraseña compartida). Localmente `dev@` es superadmin y `demo2` admin.
+- **Roles:** `guest` (invitado), `admin` (modera, carga invitados, ve reportes) y `superadmin` (lo mismo + nombrar/quitar admins; los novios). Siempre tiene que quedar un superadmin. El rol se lee de la base en cada pedido, no del token.
+- **Modo "solo compartir momentos":** el perfil no aparece en Descubrir, no puede dar likes ni recibir matches nuevos y no ve las pestañas Descubrir/Matches (si ya tenía matches, la pestaña Matches se queda). Muro e historias funcionan igual. Se puede cambiar cuando quiera desde Editar perfil.
 - **Bloqueo:** bloquear oculta a la persona en Descubrir, el muro y el chat, y deshace el match. Es unilateral y silencioso.
 - **Reportes:** los ve el admin en el panel; no se avisa al reportado.

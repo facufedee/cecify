@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "import:guests": "node --env-file=.env.local scripts/import-guests.mjs",
+    "set:role": "node --env-file=.env.local scripts/set-role.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

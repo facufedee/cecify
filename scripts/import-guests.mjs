@@ -1,5 +1,7 @@
 // Uso: npm run import:guests -- ruta/invitados.csv
-// CSV con cabecera: name,email[,code]   (sin comas dentro de los campos)
+// CSV con cabecera: name,email[,code][,side]   (sin comas dentro de los campos)
+// - side (opcional): novia | novio | ambos (o bride | groom | both). Precarga "de parte de quien
+//   viene" en el onboarding; el invitado lo puede cambiar.
 // - Si falta el codigo, se genera uno (solo para emails nuevos: nunca pisa codigos existentes).
 // - Escribe <archivo>.con-codigos.csv con los codigos para enviar las invitaciones.
 import { createClient } from '@supabase/supabase-js'
@@ -34,12 +36,18 @@ if (idx('name') < 0 || idx('email') < 0) {
   process.exit(1)
 }
 
+const SIDES = { novia: 'bride', bride: 'bride', novio: 'groom', groom: 'groom', ambos: 'both', both: 'both' }
+const hasSide = idx('side') >= 0
+
 const rows = lines.map((l) => {
   const c = l.split(',').map((x) => x.trim())
+  const rawSide = hasSide ? c[idx('side')]?.toLowerCase() : ''
   return {
     name: c[idx('name')],
     email: c[idx('email')]?.toLowerCase(),
     code: idx('code') >= 0 && c[idx('code')] ? c[idx('code')].replace(/[\s-]/g, '').toUpperCase() : null,
+    side: rawSide ? SIDES[rawSide] : null,
+    badSide: Boolean(rawSide) && !SIDES[rawSide],
   }
 })
 
@@ -57,13 +65,23 @@ for (const r of rows) {
     console.warn('Fila inválida, se omite:', JSON.stringify(r))
     continue
   }
+  if (r.badSide) {
+    console.warn(`Lado no reconocido para ${r.email} (usá novia, novio o ambos), se omite la fila`)
+    continue
+  }
   const current = existingByEmail.get(r.email)
   const code = r.code ?? current ?? genCode()
-  if (current && !r.code) {
+  // Con columna side en el CSV siempre se actualiza (aunque el codigo ya exista)
+  if (current && !r.code && !hasSide) {
     output.push(`${r.name},${r.email},${pretty(current)}`)
     continue // ya existe y no se pidió cambiar el codigo
   }
-  toUpsert.push({ name: r.name, email: r.email, access_code: code })
+  toUpsert.push({
+    name: r.name,
+    email: r.email,
+    access_code: code,
+    ...(hasSide ? { side: r.side } : {}),
+  })
   output.push(`${r.name},${r.email},${pretty(code)}`)
 }
 

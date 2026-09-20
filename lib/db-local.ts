@@ -75,6 +75,39 @@ const seedDemos = async (db: PGlite) => {
 }
 
 
+// Roles y modos de los invitados de prueba (una sola vez). Valentina (demo5) solo usa el muro y
+// demo2 es admin, para poder ver ambos casos. dev@ es superadmin.
+const ROLES_SEED = 'seed:roles-v1'
+const DEMO_MODES: { side: string; lookingFor: string[]; wantsMatch: boolean }[] = [
+  { side: 'bride', lookingFor: ['meet', 'dance'], wantsMatch: true },
+  { side: 'groom', lookingFor: ['meet'], wantsMatch: true },
+  { side: 'bride', lookingFor: ['dance'], wantsMatch: true },
+  { side: 'groom', lookingFor: ['meet', 'dance'], wantsMatch: true },
+  { side: 'both', lookingFor: [], wantsMatch: false },
+  { side: 'groom', lookingFor: ['dance'], wantsMatch: true },
+]
+
+const seedRoles = async (db: PGlite) => {
+  const done = await db.query('select 1 from _local_migrations where name = $1', [ROLES_SEED])
+  if (done.rows.length > 0) return
+
+  for (const [i, m] of DEMO_MODES.entries()) {
+    const email = `demo${i + 1}@demo.cecify.local`
+    await db.query('update guests set side = $2 where email = $1', [email, m.side])
+    await db.query(
+      `update profiles set side = $2, wants_match = $3, looking_for = array(select jsonb_array_elements_text($4::jsonb))
+        where user_id = (select id from users where email = $1)`,
+      [email, m.side, m.wantsMatch, JSON.stringify(m.lookingFor)]
+    )
+  }
+  await db.query(`update users set role = 'admin' where email = 'demo2@demo.cecify.local'`)
+  await db.query(
+    `insert into users (email, role) values ('dev@cecify.local', 'superadmin')
+     on conflict (email) do update set role = 'superadmin'`
+  )
+  await db.query('insert into _local_migrations (name) values ($1)', [ROLES_SEED])
+}
+
 // Fotos de ejemplo para el muro (una sola vez: queda registrado en _local_migrations)
 const WALL_SEED = 'seed:wall-v1'
 const WALL = [
@@ -240,6 +273,7 @@ const prepare = async (db: PGlite) => {
      on conflict do nothing`
   )
   await seedDemos(db)
+  await seedRoles(db)
   await seedWall(db)
   await seedStories(db)
   return db

@@ -43,6 +43,13 @@ export async function POST(req: Request) {
       )
     }
 
+    if (!ctx.profile.wantsMatch) {
+      return Response.json(
+        { error: 'Elegiste usar solo el muro: activá Descubrir en tu perfil para hacer match', code: 'MATCH_DISABLED' },
+        { status: 403 }
+      )
+    }
+
     const result = await recordSwipe(auth.userId, profileId, action)
     if (result.status === 'not_found') {
       return Response.json({ error: 'Perfil no encontrado' }, { status: 404 })

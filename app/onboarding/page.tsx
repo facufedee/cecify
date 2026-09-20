@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import StepIndicator from '@/components/onboarding/StepIndicator'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
+import ModeFields from '@/components/profile/ModeFields'
 import { authFetch, compressImage, getToken } from '@/lib/client-auth'
 import {
   AGE_MAX,
@@ -15,11 +16,22 @@ import {
   MAX_EXTRA_PHOTOS,
   MAX_INTERESTS,
   NAME_MAX,
+  isSide,
+  type LookingFor,
+  type Side,
 } from '@/lib/profile-schema'
 
 type Photo = { url: string; preview: string } | null
 
-const TITLES = ['Contanos sobre vos', 'Subí tus fotos', 'Tus intereses y contacto']
+// Quien solo quiere compartir momentos se salta intereses y contacto
+type StepId = 'mode' | 'you' | 'photos' | 'contact'
+
+const TITLES: Record<StepId, string> = {
+  mode: 'Tu lugar en la fiesta',
+  you: 'Contanos sobre vos',
+  photos: 'Subí tus fotos',
+  contact: 'Tus intereses y contacto',
+}
 
 const inputClass =
   'w-full rounded-xl bg-cream px-4 py-3 text-sm text-neutral-800 outline-none ring-1 ring-transparent transition placeholder:text-neutral-400 focus:bg-white focus:ring-brand'
@@ -31,6 +43,9 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [side, setSide] = useState<Side | null>(null)
+  const [wantsMatch, setWantsMatch] = useState<boolean | null>(null)
+  const [lookingFor, setLookingFor] = useState<LookingFor[]>([])
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [bio, setBio] = useState('')
@@ -55,17 +70,23 @@ export default function OnboardingPage() {
           return
         }
         if (data.guestName) setName(data.guestName)
+        if (isSide(data.guestSide)) setSide(data.guestSide) // lo cargo el admin: se puede cambiar
         setReady(true)
       })
       .catch(() => setReady(true))
   }, [router])
 
+  const steps: StepId[] = wantsMatch === false ? ['mode', 'you', 'photos'] : ['mode', 'you', 'photos', 'contact']
+  const stepId = steps[step - 1]
+  const isLast = step === steps.length
+
   const ageNum = Number(age)
-  const stepValid = [
-    name.trim().length > 0 && Number.isInteger(ageNum) && ageNum >= AGE_MIN && ageNum <= AGE_MAX,
-    photos[0] !== null && uploading === null,
-    interests.length > 0 && (instagram.trim() !== '' || whatsapp.trim() !== ''),
-  ][step - 1]
+  const stepValid = {
+    mode: side !== null && wantsMatch !== null && (wantsMatch === false || lookingFor.length > 0),
+    you: name.trim().length > 0 && Number.isInteger(ageNum) && ageNum >= AGE_MIN && ageNum <= AGE_MAX,
+    photos: photos[0] !== null && uploading === null,
+    contact: interests.length > 0 && (instagram.trim() !== '' || whatsapp.trim() !== ''),
+  }[stepId]
 
   const onPhoto = async (index: number, file: File) => {
     setError(null)
@@ -109,11 +130,14 @@ export default function OnboardingPage() {
           additionalPhotos: photos.slice(1).flatMap((p) => (p ? [p.url] : [])),
           interests,
           contactMethods: { instagram, whatsapp },
+          side,
+          wantsMatch,
+          lookingFor,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'No se pudo guardar el perfil')
-      router.push('/discover')
+      router.push(wantsMatch === false ? '/photos' : '/discover')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar el perfil')
       setSaving(false)
@@ -122,7 +146,7 @@ export default function OnboardingPage() {
 
   const next = () => {
     setError(null)
-    if (step < 3) setStep(step + 1)
+    if (!isLast) setStep(step + 1)
     else submit()
   }
 
@@ -155,10 +179,10 @@ export default function OnboardingPage() {
         </header>
 
         <div className="mt-6">
-          <StepIndicator current={step} />
+          <StepIndicator current={step} total={steps.length} />
         </div>
 
-        <h1 className="mt-8 text-center text-2xl font-semibold">{TITLES[step - 1]}</h1>
+        <h1 className="mt-8 text-center text-2xl font-semibold">{TITLES[stepId]}</h1>
 
         <div className="mt-6 flex-1">
           <AnimatePresence mode="wait">
@@ -169,7 +193,18 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.18 }}
             >
-              {step === 1 && (
+              {stepId === 'mode' && (
+                <ModeFields
+                  side={side}
+                  wantsMatch={wantsMatch}
+                  lookingFor={lookingFor}
+                  onSide={setSide}
+                  onWantsMatch={setWantsMatch}
+                  onLookingFor={setLookingFor}
+                />
+              )}
+
+              {stepId === 'you' && (
                 <div className="space-y-5">
                   <label className="block text-sm">
                     <span className="mb-1.5 block font-medium">Nombre</span>
@@ -210,7 +245,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {step === 2 && (
+              {stepId === 'photos' && (
                 <div className="flex flex-col items-center gap-6">
                   <PhotoSlot
                     main
@@ -234,7 +269,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {step === 3 && (
+              {stepId === 'contact' && (
                 <div className="space-y-7">
                   <section>
                     <h2 className="mb-3 flex justify-between text-sm font-medium">
@@ -307,7 +342,7 @@ export default function OnboardingPage() {
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-medium text-white transition hover:bg-brand-dark disabled:opacity-50"
         >
           {saving && <Loader2 size={18} className="animate-spin" />}
-          {step < 3 ? 'Continuar' : 'Finalizar'}
+          {isLast ? 'Finalizar' : 'Continuar'}
         </button>
       </div>
     </main>

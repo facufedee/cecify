@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken'
+import type { Role } from '@/lib/roles'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
-export const generateToken = (userId: string, role: 'guest' | 'admin' = 'guest') => {
+export const generateToken = (userId: string, role: Role = 'guest') => {
   return jwt.sign(
     { userId, role },
     JWT_SECRET,

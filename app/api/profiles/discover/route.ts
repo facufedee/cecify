@@ -33,6 +33,13 @@ export async function GET(req: Request) {
       )
     }
 
+    if (!ctx.profile.wantsMatch) {
+      return Response.json(
+        { error: 'Elegiste usar solo el muro', code: 'MATCH_DISABLED' },
+        { status: 403 }
+      )
+    }
+
     const mine = new Set(ctx.profile.interests)
     const profiles: DiscoverProfile[] = (await discoverProfiles(auth.userId, exclude, 10)).map((p) => ({
       ...p,

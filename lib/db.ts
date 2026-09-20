@@ -1,7 +1,8 @@
 import { supabaseServer } from '@/lib/supabase'
-import type { Profile, ProfileInput } from '@/lib/profile-schema'
+import type { LookingFor, Profile, ProfileInput, Side } from '@/lib/profile-schema'
+import type { Role } from '@/lib/roles'
 
-export type DbUser = { id: string; email: string; role: 'guest' | 'admin' }
+export type DbUser = { id: string; email: string; role: Role }
 
 // Solo en desarrollo: nunca se usa la base local en produccion
 const useLocal = process.env.LOCAL_DB === '1' && process.env.NODE_ENV !== 'production'
@@ -19,6 +20,9 @@ type ProfileRow = {
   interests: string[] | null
   contact_methods: Profile['contactMethods'] | null
   visibility: boolean | null
+  wants_match: boolean
+  looking_for: LookingFor[] | null
+  side: Side | null
 }
 
 const toProfile = (r: ProfileRow): Profile => ({
@@ -32,6 +36,9 @@ const toProfile = (r: ProfileRow): Profile => ({
   interests: r.interests ?? [],
   contactMethods: r.contact_methods ?? {},
   visible: r.visibility ?? true,
+  wantsMatch: r.wants_match,
+  lookingFor: r.looking_for ?? [],
+  side: r.side,
 })
 
 export const findGuest = async (email: string, code: string) => {
@@ -76,12 +83,43 @@ export const upsertUser = async (email: string): Promise<DbUser> => {
   return data as DbUser
 }
 
-// Perfil propio + nombre del invitado (para precargar el onboarding)
+// Rol actual (siempre desde la base: el del token puede estar desactualizado hasta 12 h)
+export const getUserRole = async (userId: string): Promise<Role | null> => {
+  if (useLocal) {
+    const db = await localDb()
+    const { rows } = await db.query<{ role: Role }>('select role from users where id = $1', [userId])
+    return rows[0]?.role ?? null
+  }
+  const { data, error } = await supabaseServer().from('users').select('role').eq('id', userId).maybeSingle()
+  if (error) throw error
+  return (data?.role as Role | undefined) ?? null
+}
+
+export type SetRoleStatus = 'ok' | 'invalid' | 'forbidden' | 'not_found' | 'last_superadmin'
+
+// Solo un superadmin puede cambiar roles (lo decide set_user_role en SQL)
+export const setUserRole = async (actorId: string, targetId: string, role: string): Promise<SetRoleStatus> => {
+  const rows = await callFn<{ status: SetRoleStatus }>('set_user_role', {
+    p_actor: actorId,
+    p_target: targetId,
+    p_role: role,
+  })
+  return rows[0].status
+}
+
+// Perfil propio + datos del invitado (para precargar el onboarding) + rol
 export const getUserContext = async (userId: string) => {
   if (useLocal) {
     const db = await localDb()
-    const u = await db.query<{ email: string; guest_name: string | null }>(
-      `select u.email, g.name as guest_name
+    const u = await db.query<{
+      email: string
+      role: Role
+      guest_name: string | null
+      guest_side: Side | null
+      matches_count: number
+    }>(
+      `select u.email, u.role, g.name as guest_name, g.side as guest_side,
+              (select count(*)::int from matches m where m.user1_id = u.id or m.user2_id = u.id) as matches_count
          from users u left join guests g on g.email = u.email
         where u.id = $1`,
       [userId]
@@ -90,7 +128,10 @@ export const getUserContext = async (userId: string) => {
     const p = await db.query<ProfileRow>('select * from profiles where user_id = $1', [userId])
     return {
       email: u.rows[0].email,
+      role: u.rows[0].role,
       guestName: u.rows[0].guest_name,
+      guestSide: u.rows[0].guest_side,
+      matchesCount: u.rows[0].matches_count,
       profile: p.rows[0] ? toProfile(p.rows[0]) : null,
     }
   }
@@ -98,22 +139,30 @@ export const getUserContext = async (userId: string) => {
   const supabase = supabaseServer()
   const { data: user, error } = await supabase
     .from('users')
-    .select('email')
+    .select('email, role')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw error
   if (!user) return null
 
-  const [{ data: guest, error: gErr }, { data: profile, error: pErr }] = await Promise.all([
-    supabase.from('guests').select('name').eq('email', user.email).maybeSingle(),
+  const [{ data: guest, error: gErr }, { data: profile, error: pErr }, { count, error: cErr }] = await Promise.all([
+    supabase.from('guests').select('name, side').eq('email', user.email).maybeSingle(),
     supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('matches')
+      .select('id', { count: 'exact', head: true })
+      .or(`user1_id.eq.${userId},user2_id.eq.${userId}`),
   ])
   if (gErr) throw gErr
   if (pErr) throw pErr
+  if (cErr) throw cErr
 
   return {
     email: user.email as string,
+    role: user.role as Role,
     guestName: (guest?.name as string | undefined) ?? null,
+    guestSide: (guest?.side as Side | undefined) ?? null,
+    matchesCount: count ?? 0,
     profile: profile ? toProfile(profile as ProfileRow) : null,
   }
 }
@@ -124,14 +173,17 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
     const db = await localDb()
     const { rows } = await db.query<ProfileRow>(
       `insert into profiles
-         (user_id, name, age, bio, main_photo_url, additional_photos, interests, contact_methods, visibility)
-       values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9)
+         (user_id, name, age, bio, main_photo_url, additional_photos, interests, contact_methods, visibility,
+          wants_match, looking_for, side)
+       values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9,
+               $10, array(select jsonb_array_elements_text($11::jsonb)), $12)
        on conflict (user_id) do update set
          name = excluded.name, age = excluded.age, bio = excluded.bio,
          main_photo_url = excluded.main_photo_url,
          additional_photos = excluded.additional_photos,
          interests = excluded.interests, contact_methods = excluded.contact_methods,
-         visibility = excluded.visibility
+         visibility = excluded.visibility, wants_match = excluded.wants_match,
+         looking_for = excluded.looking_for, side = excluded.side
        returning *`,
       [
         userId,
@@ -143,6 +195,9 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
         JSON.stringify(input.interests),
         JSON.stringify(input.contactMethods),
         input.visible,
+        input.wantsMatch,
+        JSON.stringify(input.lookingFor),
+        input.side,
       ]
     )
     return toProfile(rows[0])
@@ -161,6 +216,9 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
         interests: input.interests,
         contact_methods: input.contactMethods,
         visibility: input.visible,
+        wants_match: input.wantsMatch,
+        looking_for: input.lookingFor,
+        side: input.side,
       },
       { onConflict: 'user_id' }
     )
@@ -194,6 +252,8 @@ type DiscoverRow = {
   main_photo_url: string
   additional_photos: string[] | null
   interests: string[] | null
+  side: Side | null
+  looking_for: LookingFor[] | null
 }
 
 export const discoverProfiles = async (userId: string, exclude: string[], limit = 10) => {
@@ -225,6 +285,8 @@ export const discoverProfiles = async (userId: string, exclude: string[], limit 
     mainPhotoUrl: r.main_photo_url,
     additionalPhotos: r.additional_photos ?? [],
     interests: r.interests ?? [],
+    side: r.side,
+    lookingFor: r.looking_for ?? [],
   }))
 }
 

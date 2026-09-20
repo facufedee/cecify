@@ -48,7 +48,9 @@ export default function DiscoverPage() {
       const exclude = [...seen.current].slice(-50).join(',')
       const res = await authFetch(`/api/profiles/discover?exclude=${exclude}`)
       if (res.status === 403) {
-        router.replace('/onboarding')
+        // Sin perfil -> onboarding; con "solo compartir momentos" -> al muro
+        const { code } = await res.json().catch(() => ({ code: null }))
+        router.replace(code === 'MATCH_DISABLED' ? '/photos' : '/onboarding')
         return
       }
       if (!res.ok) throw new Error()

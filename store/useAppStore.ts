@@ -1,9 +1,10 @@
 import { create } from 'zustand'
+import type { Role } from '@/lib/roles'
 
 interface User {
   id: string
   email: string
-  role: 'guest' | 'admin'
+  role: Role
 }
 
 interface AppState {

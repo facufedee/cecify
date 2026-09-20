@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, X } from 'lucide-react'
+import { useMe } from '@/components/app/MeProvider'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
+import ModeFields from '@/components/profile/ModeFields'
 import { authFetch, compressImage } from '@/lib/client-auth'
 import {
   AGE_MAX,
@@ -14,7 +16,9 @@ import {
   MAX_EXTRA_PHOTOS,
   MAX_INTERESTS,
   NAME_MAX,
+  type LookingFor,
   type Profile,
+  type Side,
 } from '@/lib/profile-schema'
 
 const field =
@@ -22,9 +26,14 @@ const field =
 
 export default function EditProfilePage() {
   const router = useRouter()
+  const { reload } = useMe()
   const [ready, setReady] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [side, setSide] = useState<Side | null>(null)
+  const [wantsMatch, setWantsMatch] = useState(true)
+  const [lookingFor, setLookingFor] = useState<LookingFor[]>([])
 
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
@@ -52,6 +61,9 @@ export default function EditProfilePage() {
         setInstagram(profile.contactMethods.instagram ?? '')
         setWhatsapp(profile.contactMethods.whatsapp ?? '')
         setVisible(profile.visible)
+        setSide(profile.side)
+        setWantsMatch(profile.wantsMatch)
+        setLookingFor(profile.lookingFor)
         setReady(true)
       })
       .catch(() => !cancelled && setError('No se pudo cargar tu perfil'))
@@ -94,8 +106,12 @@ export default function EditProfilePage() {
     ageNum >= AGE_MIN &&
     ageNum <= AGE_MAX &&
     photos[0] !== null &&
-    interests.length > 0 &&
-    (instagram.trim() !== '' || whatsapp.trim() !== '') &&
+    side !== null &&
+    // Intereses, contacto y que buscas solo se piden si participa del match
+    (!wantsMatch ||
+      (lookingFor.length > 0 &&
+        interests.length > 0 &&
+        (instagram.trim() !== '' || whatsapp.trim() !== ''))) &&
     uploading === null
 
   const save = async () => {
@@ -115,10 +131,14 @@ export default function EditProfilePage() {
           interests,
           contactMethods: { instagram, whatsapp },
           visible,
+          side,
+          wantsMatch,
+          lookingFor,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'No se pudo guardar')
+      await reload() // la barra de navegacion depende del modo
       router.replace('/profile')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar')
@@ -201,6 +221,22 @@ export default function EditProfilePage() {
           </label>
         </section>
 
+        <ModeFields
+          side={side}
+          wantsMatch={wantsMatch}
+          lookingFor={lookingFor}
+          onSide={setSide}
+          onWantsMatch={setWantsMatch}
+          onLookingFor={setLookingFor}
+        />
+        {!wantsMatch && (
+          <p className="-mt-4 text-xs text-ig-muted">
+            Dejás de aparecer en Descubrir y no podés dar likes. Los matches que ya tenés se mantienen.
+          </p>
+        )}
+
+        {wantsMatch && (
+        <>
         <section>
           <h2 className="mb-3 flex justify-between text-sm font-semibold">
             Intereses
@@ -276,6 +312,8 @@ export default function EditProfilePage() {
             />
           </button>
         </section>
+        </>
+        )}
 
         <Link href="/profile/blocked" className="block text-center text-sm font-semibold text-ig-link">
           Cuentas bloqueadas

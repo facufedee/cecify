@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Compass, Heart, Image as ImageIcon, User } from 'lucide-react'
+import { useMe } from '@/components/app/MeProvider'
 import { useRealtime } from '@/components/app/RealtimeProvider'
 
 const ITEMS = [
@@ -18,13 +19,23 @@ const FULL_SCREEN = ['/photos/new', '/stories/new', '/profile/edit', '/profile/b
 export default function BottomNav() {
   const pathname = usePathname()
   const { unread } = useRealtime()
+  const { me } = useMe()
 
   // El chat y los compositores de fotos e historias ocupan toda la pantalla
   if (pathname.startsWith('/matches/') || FULL_SCREEN.includes(pathname)) return null
 
+  // Quien eligio "solo compartir momentos" no ve Descubrir ni Matches (salvo que ya tenga matches)
+  const onlyWall = me?.profile?.wantsMatch === false
+  const items = ITEMS.filter(({ href }) => {
+    if (!onlyWall) return true
+    if (href === '/discover') return false
+    if (href === '/matches') return (me?.matchesCount ?? 0) > 0
+    return true
+  })
+
   return (
     <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
-      {ITEMS.map(({ href, label, Icon }) => {
+      {items.map(({ href, label, Icon }) => {
         const active = pathname === href || (href === '/photos' && pathname.startsWith('/photos/'))
         const badge = href === '/matches' && unread > 0 ? unread : 0
         return (

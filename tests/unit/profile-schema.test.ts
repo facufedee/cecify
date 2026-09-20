@@ -9,6 +9,9 @@ const valid = {
   additionalPhotos: [],
   interests: ['Música', 'Baile'],
   contactMethods: { instagram: '@ana.perez', whatsapp: '+54 9 11 5555-1234' },
+  side: 'bride',
+  wantsMatch: true,
+  lookingFor: ['meet'],
 }
 
 const error = (changes: Record<string, unknown>) => {
@@ -66,6 +69,44 @@ describe('validateProfileInput', () => {
     const hidden = validateProfileInput({ ...valid, visible: false })
     expect(hidden.ok && hidden.data.visible).toBe(false)
     expect(error({ visible: 'no' })).toMatch(/visibilidad/i)
+  })
+
+  it('exige de parte de quien viene', () => {
+    expect(error({ side: undefined })).toMatch(/parte de quién/i)
+    expect(error({ side: 'otro' })).toMatch(/parte de quién/i)
+    expect(error({ side: 'groom' })).toBeNull()
+    expect(error({ side: 'both' })).toBeNull()
+  })
+
+  it('quien quiere hacer match tiene que elegir que busca (una o las dos, sin repetir)', () => {
+    expect(error({ lookingFor: [] })).toMatch(/buscando/i)
+    expect(error({ lookingFor: undefined })).toMatch(/buscando/i)
+    expect(error({ lookingFor: ['casarse'] })).toMatch(/buscando/i)
+    expect(error({ lookingFor: ['meet', 'meet'] })).toMatch(/buscando/i)
+    expect(error({ lookingFor: ['dance'] })).toBeNull()
+    expect(error({ lookingFor: ['meet', 'dance'] })).toBeNull()
+  })
+
+  it('wantsMatch es true por defecto y rechaza otros tipos', () => {
+    const { wantsMatch: _omit, ...withoutMode } = valid
+    void _omit
+    const r = validateProfileInput(withoutMode)
+    expect(r.ok && r.data.wantsMatch).toBe(true)
+    expect(error({ wantsMatch: 'si' })).toMatch(/modo/i)
+  })
+
+  it('en modo "solo muro" no pide intereses, contacto ni que busca', () => {
+    const social = { wantsMatch: false, interests: [], contactMethods: {}, lookingFor: [] }
+    expect(error(social)).toBeNull()
+    // aunque llegue algo de lookingFor, no se guarda
+    const r = validateProfileInput({ ...valid, ...social, lookingFor: ['meet'] })
+    expect(r.ok && r.data.lookingFor).toEqual([])
+    // lo que se manda igual se valida
+    expect(error({ ...social, interests: ['Hackear'] })).toBeTruthy()
+    expect(error({ ...social, contactMethods: { whatsapp: 'abc' } })).toMatch(/whatsapp/i)
+    // pero la foto, la edad y el lado siguen siendo obligatorios
+    expect(error({ ...social, mainPhotoUrl: '' })).toMatch(/foto/i)
+    expect(error({ ...social, side: undefined })).toMatch(/parte de quién/i)
   })
 
   it('no revienta con basura', () => {

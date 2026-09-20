@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import type { DiscoverProfile } from '@/lib/profile-schema'
+import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
 
 export default function ProfileSheet({
   profile,
@@ -64,6 +64,21 @@ export default function ProfileSheet({
           <h2 className="text-2xl font-semibold">
             {profile.name}, {profile.age}
           </h2>
+
+          {profile.side && <p className="mt-0.5 text-sm text-neutral-500">{SIDE_LABELS[profile.side]}</p>}
+
+          {profile.lookingFor.length > 0 && (
+            <section className="mt-4">
+              <h3 className="text-sm font-semibold text-neutral-500">Busca</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {profile.lookingFor.map((v) => (
+                  <span key={v} className="rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-medium text-brand-dark">
+                    {LOOKING_FOR_LABELS[v]}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
           {profile.bio && (
             <section className="mt-4">

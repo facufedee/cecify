@@ -23,8 +23,11 @@ Cuentas de prueba (se crean solas):
 | `dev@cecify.local` | `DEV1-2345` | tu cuenta de prueba |
 | `demo1@demo.cecify.local` … `demo6@…` | `DEMO0001` … `DEMO0006` | Lucía, Mateo, Camila, Joaquín, Valentina, Tomás |
 
-En desarrollo los invitados demo con número impar (Lucía, Camila, Valentina) te dan like de vuelta, así se ve la pantalla
-de match, y todos responden solos a los mensajes. Hay fotos e historias de ejemplo.
+`dev@` es superadmin, Mateo (`demo2`) es admin y Valentina (`demo5`) solo usa el muro (no aparece en Descubrir), para ver
+cada caso.
+
+En desarrollo los invitados demo con número impar que participan del match (Lucía y Camila) te dan like de vuelta, así se
+ve la pantalla de match, y todos responden solos a los mensajes. Hay fotos e historias de ejemplo.
 
 Para tiempo real (mensajes al instante, "escribiendo…", avisos) hay que levantar también el servidor de sockets:
 
@@ -43,7 +46,8 @@ Sin él todo funciona igual, con actualización por polling (unos segundos de de
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | chequeo de tipos |
 | `npm test` | tests (migraciones con PGlite, validadores, utilidades) |
-| `npm run import:guests -- invitados.csv` | carga la lista de invitados en Supabase y genera los códigos |
+| `npm run import:guests -- invitados.csv` | carga la lista de invitados en Supabase y genera los códigos (columnas: `name,email[,code][,side]`; `side` = novia / novio / ambos) |
+| `npm run set:role -- email guest\|admin\|superadmin` | cambia el rol de alguien en Supabase (para nombrar al primer superadmin) |
 | `node scripts/generate-icons.mjs` | regenera los iconos de la PWA a partir de la hoja de logos |
 
 ## Variables de entorno
@@ -78,6 +82,10 @@ Decisiones de diseño que conviene conocer:
   pública de Supabase no puede leer ni escribir nada.
 - **La lógica sensible vive en funciones SQL** (`record_swipe`, `send_message`, `toggle_photo_like`, …): atómicas, probadas con
   PGlite y con el acceso público revocado. Un test falla si alguien agrega una función sin ese `REVOKE`.
+- **Roles y modos:** el *rol* (`guest`, `admin`, `superadmin`) da permisos y se lee de la base en cada pedido
+  (`requireRole` en `lib/api-auth.ts`), no del token. El *modo* lo elige cada invitado: quien elige solo muro e historias
+  (`wants_match = false`) queda fuera de Descubrir y de los matches; lo aplica SQL (`discover_profiles`, `record_swipe`), no
+  solo la pantalla. Solo un superadmin cambia roles (`set_user_role`) y siempre queda al menos uno.
 - **Los contactos solo se revelan tras un match** y nunca salen de la API de Descubrir.
 - **Tiempo real:** los mensajes se guardan por la API; el servidor de sockets solo entrega avisos y verifica el JWT. Si está
   caído, la app sigue funcionando por polling.
