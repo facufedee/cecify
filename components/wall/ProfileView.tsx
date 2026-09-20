@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, LogOut, MessageCircle } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, LogOut, MessageCircle, MoreHorizontal } from 'lucide-react'
+import ActionSheet from '@/components/wall/ActionSheet'
+import { useSafety } from '@/components/safety/useSafety'
 import PostCard from '@/components/wall/PostCard'
 import StoryRing from '@/components/wall/StoryRing'
 import { usePostActions } from '@/components/wall/usePostActions'
@@ -22,6 +25,9 @@ export default function ProfileView({ userId }: { userId?: string }) {
   const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'failed'>('loading')
   const [viewing, setViewing] = useState<string | null>(null)
   const actions = usePostActions(photos, setPhotos)
+  const [menu, setMenu] = useState(false)
+  // Bloquear a esta persona: se vuelve a la pantalla anterior
+  const safety = useSafety({ onBlocked: () => router.replace('/photos') })
 
   useEffect(() => {
     let cancelled = false
@@ -81,6 +87,11 @@ export default function ProfileView({ userId }: { userId?: string }) {
           </button>
         )}
         <h1 className="flex-1 truncate text-base font-bold">{author.name}</h1>
+        {!isMe && (
+          <button type="button" aria-label="Más opciones" onClick={() => setMenu(true)} className="p-1">
+            <MoreHorizontal size={22} />
+          </button>
+        )}
         {isMe && (
           <button
             type="button"
@@ -195,6 +206,33 @@ export default function ProfileView({ userId }: { userId?: string }) {
       )}
 
       {actions.overlays}
+      {safety.overlays}
+      <AnimatePresence>
+        {menu && !isMe && (
+          <ActionSheet
+            key="menu"
+            onClose={() => setMenu(false)}
+            actions={[
+              {
+                label: 'Reportar',
+                destructive: true,
+                onClick: () => {
+                  setMenu(false)
+                  safety.openReport({ name: author.name, userId: userId, type: 'profile' })
+                },
+              },
+              {
+                label: 'Bloquear',
+                destructive: true,
+                onClick: () => {
+                  setMenu(false)
+                  safety.openBlock({ name: author.name, userId: userId })
+                },
+              },
+            ]}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

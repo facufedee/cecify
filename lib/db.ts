@@ -179,6 +179,8 @@ export const resetProfile = async (userId: string, only?: 'swipes' | 'story-view
   // matches -> conversations -> messages caen en cascada
   await db.query('delete from matches where user1_id = $1 or user2_id = $1', [userId])
   await db.query('delete from swipes where from_user_id = $1 or to_user_id = $1', [userId])
+  await db.query('delete from blocks where blocker_id = $1 or blocked_id = $1', [userId])
+  await db.query('delete from reports where reporter_id = $1 or reported_user_id = $1', [userId])
   if (only !== 'swipes') await db.query('delete from profiles where user_id = $1', [userId])
 }
 
@@ -610,8 +612,8 @@ type CommentRow = {
   created_at: string | Date
 }
 
-export const listComments = async (photoId: string): Promise<WallComment[]> => {
-  const rows = await callFn<CommentRow>('list_comments', { p_photo: photoId, p_limit: 100 })
+export const listComments = async (viewerId: string, photoId: string): Promise<WallComment[]> => {
+  const rows = await callFn<CommentRow>('list_comments', { p_viewer: viewerId, p_photo: photoId, p_limit: 100 })
   return rows.map((r) => ({
     id: r.comment_id,
     authorId: r.author_id,
@@ -760,4 +762,79 @@ export const listStoryViewers = async (userId: string, storyId: string): Promise
     photo: r.viewer_photo ?? '',
     viewedAt: iso(r.viewed_at),
   }))
+}
+
+// ---- Seguridad: bloquear, reportar, deshacer match ----
+
+export type BlockedUser = { id: string; name: string; photo: string; blockedAt: string }
+
+export const isBlockedBetween = async (a: string, b: string) => {
+  const [r] = await callFn<{ is_blocked: boolean }>('blocked_between', { p_a: a, p_b: b })
+  return r?.is_blocked === true
+}
+
+// false = el usuario a bloquear no existe
+export const blockUser = async (userId: string, targetId: string) => {
+  const [r] = await callFn<{ ok: boolean }>('block_user', { p_blocker: userId, p_blocked: targetId })
+  return r?.ok === true
+}
+
+export const unblockUser = async (userId: string, targetId: string) => {
+  const [r] = await callFn<{ ok: boolean }>('unblock_user', { p_blocker: userId, p_blocked: targetId })
+  return r?.ok === true
+}
+
+export const listBlocked = async (userId: string): Promise<BlockedUser[]> => {
+  const rows = await callFn<{
+    blocked_user: string
+    blocked_name: string
+    blocked_photo: string | null
+    blocked_at: string | Date
+  }>('list_blocked', { p_user: userId })
+  return rows.map((r) => ({
+    id: r.blocked_user,
+    name: r.blocked_name,
+    photo: r.blocked_photo ?? '',
+    blockedAt: iso(r.blocked_at),
+  }))
+}
+
+export const unmatch = async (userId: string, conversationId: string) => {
+  const [r] = await callFn<{ ok: boolean }>('unmatch', { p_user: userId, p_conversation: conversationId })
+  return r?.ok === true
+}
+
+export type ReportInput = {
+  reportedUserId: string
+  type: 'profile' | 'photo' | 'comment' | 'story' | 'chat'
+  targetId: string | null
+  reason: 'inappropriate' | 'harassment' | 'spam' | 'fake' | 'other'
+  details: string
+  context: unknown
+}
+
+// null = el reportado no existe
+export const createReport = async (reporterId: string, input: ReportInput) => {
+  const [r] = await callFn<{ new_report_id: string }>('create_report', {
+    p_reporter: reporterId,
+    p_reported: input.reportedUserId,
+    p_type: input.type,
+    p_target: input.targetId,
+    p_reason: input.reason,
+    p_details: input.details,
+    p_context: JSON.stringify(input.context),
+  })
+  return r?.new_report_id ?? null
+}
+
+// Descubrir no expone ids de usuario: reportes y bloqueos pueden venir con el id de perfil
+export const userIdForProfile = async (profileId: string) => {
+  if (useLocal) {
+    const db = await localDb()
+    const { rows } = await db.query<{ user_id: string }>('select user_id from profiles where id = $1', [profileId])
+    return rows[0]?.user_id ?? null
+  }
+  const { data, error } = await supabaseServer().from('profiles').select('user_id').eq('id', profileId).maybeSingle()
+  if (error) throw error
+  return (data?.user_id as string | undefined) ?? null
 }

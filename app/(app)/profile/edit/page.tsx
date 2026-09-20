@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, X } from 'lucide-react'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
@@ -275,6 +276,10 @@ export default function EditProfilePage() {
             />
           </button>
         </section>
+
+        <Link href="/profile/blocked" className="block text-center text-sm font-semibold text-ig-link">
+          Cuentas bloqueadas
+        </Link>
 
         {error && (
           <p role="alert" className="text-center text-sm text-ig-like">

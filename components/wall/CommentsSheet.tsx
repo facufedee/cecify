@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2 } from 'lucide-react'
+import { Flag, Loader2 } from 'lucide-react'
 import StoryRing from '@/components/wall/StoryRing'
 import { authFetch } from '@/lib/client-auth'
 import { formatShortAgo } from '@/lib/format'
@@ -12,12 +12,16 @@ const MAX_LENGTH = 300
 
 export default function CommentsSheet({
   photo,
+  myId,
   onClose,
   onAdded,
+  onReport,
 }: {
   photo: WallPhoto
+  myId: string | null
   onClose: () => void
   onAdded: (photoId: string) => void
+  onReport: (comment: WallComment) => void
 }) {
   const [comments, setComments] = useState<WallComment[] | null>(null)
   const [text, setText] = useState('')
@@ -121,6 +125,16 @@ export default function CommentsSheet({
                 {c.body}
                 <span className="mt-0.5 block text-xs text-ig-muted">{formatShortAgo(c.createdAt)}</span>
               </p>
+              {c.authorId !== myId && (
+                <button
+                  type="button"
+                  onClick={() => onReport(c)}
+                  aria-label={`Reportar el comentario de ${c.authorName}`}
+                  className="ml-auto shrink-0 self-start p-1 text-ig-muted"
+                >
+                  <Flag size={14} />
+                </button>
+              )}
             </div>
           ))}
           <div ref={endRef} />

@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!UUID_RE.test(id)) return Response.json({ error: 'Foto inválida' }, { status: 400 })
 
   try {
-    return Response.json({ comments: await listComments(id) })
+    return Response.json({ comments: await listComments(auth.userId, id) })
   } catch (error) {
     console.error('photos/comments list error:', error)
     return Response.json({ error: 'Error del servidor' }, { status: 500 })

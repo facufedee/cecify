@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Eye, Loader2, MoreHorizontal, X } from 'lucide-react'
 import ActionSheet from '@/components/wall/ActionSheet'
 import StoryRing from '@/components/wall/StoryRing'
+import { useSafety } from '@/components/safety/useSafety'
 import { authFetch } from '@/lib/client-auth'
 import { formatShortAgo } from '@/lib/format'
 import type { Story, StoryAuthor, StoryViewerInfo } from '@/lib/db'
@@ -34,6 +35,8 @@ export default function StoryViewer({
   const [sheet, setSheet] = useState<Sheet>(null)
   const [viewers, setViewers] = useState<StoryViewerInfo[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Bloquear a quien publico la historia cierra el visor
+  const safety = useSafety({ onBlocked: () => onClose() })
 
   const goLast = useRef(false) // al retroceder de autor, arrancar por su ultima historia
   const elapsedRef = useRef(0)
@@ -107,7 +110,7 @@ export default function StoryViewer({
 
   // Reloj de la historia actual
   useEffect(() => {
-    if (!story || paused || sheet) return
+    if (!story || paused || sheet || safety.busy) return
     const timer = setInterval(() => {
       elapsedRef.current += TICK
       if (elapsedRef.current >= DURATION) {
@@ -117,7 +120,7 @@ export default function StoryViewer({
       }
     }, TICK)
     return () => clearInterval(timer)
-  }, [story, paused, sheet])
+  }, [story, paused, sheet, safety.busy])
 
   // Marca como vista (una vez por historia, solo las ajenas)
   useEffect(() => {
@@ -259,7 +262,7 @@ export default function StoryViewer({
           <span className="text-sm font-semibold drop-shadow">{isMine ? 'Tu historia' : author?.name}</span>
           {story && <span className="text-sm text-white/75">{formatShortAgo(story.createdAt)}</span>}
           <span className="flex-1" />
-          {isMine && story && (
+          {story && (
             <button
               type="button"
               aria-label="Más opciones"
@@ -316,7 +319,35 @@ export default function StoryViewer({
           <ActionSheet
             key="menu"
             onClose={() => setSheet(null)}
-            actions={[{ label: 'Eliminar', destructive: true, onClick: () => setSheet('confirm') }]}
+            actions={
+              isMine
+                ? [{ label: 'Eliminar', destructive: true, onClick: () => setSheet('confirm') }]
+                : [
+                    {
+                      label: 'Reportar',
+                      destructive: true,
+                      onClick: () => {
+                        setSheet(null)
+                        if (story && author) {
+                          safety.openReport({
+                            name: author.name,
+                            userId: author.authorId,
+                            type: 'story',
+                            targetId: story.id,
+                          })
+                        }
+                      },
+                    },
+                    {
+                      label: `Bloquear a ${author?.name}`,
+                      destructive: true,
+                      onClick: () => {
+                        setSheet(null)
+                        if (author) safety.openBlock({ name: author.name, userId: author.authorId })
+                      },
+                    },
+                  ]
+            }
           />
         )}
         {sheet === 'confirm' && (
@@ -371,6 +402,7 @@ export default function StoryViewer({
           </motion.div>
         )}
       </AnimatePresence>
+      {safety.overlays}
     </motion.div>
   )
 }

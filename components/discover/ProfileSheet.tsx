@@ -7,9 +7,11 @@ import type { DiscoverProfile } from '@/lib/profile-schema'
 export default function ProfileSheet({
   profile,
   onClose,
+  onSafety,
 }: {
   profile: DiscoverProfile
   onClose: () => void
+  onSafety: () => void
 }) {
   const photos = [profile.mainPhotoUrl, ...profile.additionalPhotos]
 
@@ -97,6 +99,10 @@ export default function ProfileSheet({
               })}
             </div>
           </section>
+
+          <button type="button" onClick={onSafety} className="mt-6 w-full py-2 text-sm font-medium text-red-600">
+            Reportar o bloquear a {profile.name}
+          </button>
         </div>
       </motion.div>
     </motion.div>

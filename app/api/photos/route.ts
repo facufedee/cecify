@@ -1,5 +1,5 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
-import { createPhoto, getAuthor, listPhotos } from '@/lib/db'
+import { createPhoto, getAuthor, isBlockedBetween, listPhotos } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { isOwnPhotoUrl } from '@/lib/storage'
 import { UUID_RE } from '@/lib/validators'
@@ -21,6 +21,9 @@ export async function GET(req: Request) {
   const limit = Math.min(Math.max(Number(params.get('limit')) || 12, 1), 60)
 
   try {
+    if (authorRaw && (await isBlockedBetween(auth.userId, authorRaw))) {
+      return Response.json({ error: 'Invitado no encontrado' }, { status: 404 })
+    }
     const photos = await listPhotos(auth.userId, { before, author: authorRaw ?? undefined, limit })
     const author = authorRaw ? await getAuthor(authorRaw) : undefined
     if (authorRaw && !author) return Response.json({ error: 'Invitado no encontrado' }, { status: 404 })

@@ -85,7 +85,7 @@ describe('comentarios', () => {
   it('agrega (recortando), lista en orden con autor y cuenta', async () => {
     await q(db, 'select * from add_comment($1, $2, $3)', [b, photoA, '  Qué linda foto  '])
     await q(db, 'select * from add_comment($1, $2, $3)', [c, photoA, 'Jaja'])
-    const list = await q<{ body: string; author_name: string }>(db, 'select * from list_comments($1)', [photoA])
+    const list = await q<{ body: string; author_name: string }>(db, 'select * from list_comments($1, $2)', [c, photoA])
     expect(list.map((x) => x.body)).toEqual(['Qué linda foto', 'Jaja'])
     expect(list[0].author_name).toBe('B')
     const [row] = await q<{ comments_count: number }>(db, 'select * from list_photos(p_user=>$1, p_photo=>$2)', [c, photoA])

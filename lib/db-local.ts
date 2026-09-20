@@ -254,5 +254,21 @@ const open = () =>
     return db
   })())
 
+// Se vuelve a preparar si aparecen migraciones nuevas (sin reiniciar el servidor). Una migracion ya
+// aplicada que se edita NO se reaplica: en ese caso borrar .local-db/.
+const migrationsSignature = () =>
+  readdirSync(path.join(process.cwd(), 'supabase', 'migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .join('|')
+
 let prepared: Promise<PGlite> | undefined
-export const getLocalDb = () => (prepared ??= open().then(prepare))
+let signature = ''
+export const getLocalDb = () => {
+  const current = migrationsSignature()
+  if (!prepared || current !== signature) {
+    signature = current
+    prepared = open().then(prepare)
+  }
+  return prepared
+}

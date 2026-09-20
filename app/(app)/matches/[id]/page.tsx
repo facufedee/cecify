@@ -3,7 +3,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, AtSign, Loader2, MessageCircle, Send } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { ArrowLeft, AtSign, Loader2, MessageCircle, MoreVertical, Send } from 'lucide-react'
+import ActionSheet from '@/components/wall/ActionSheet'
+import { useSafety } from '@/components/safety/useSafety'
 import { REALTIME_EVENTS, useRealtime } from '@/components/app/RealtimeProvider'
 import { authFetch, getSessionUserId } from '@/lib/client-auth'
 import { formatClock, formatDayLabel } from '@/lib/format'
@@ -48,6 +51,12 @@ export default function ChatPage() {
   const [typing, setTyping] = useState(false)
   const [showContact, setShowContact] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [menu, setMenu] = useState(false)
+  // Bloquear o deshacer el match cierra el chat
+  const safety = useSafety({
+    onBlocked: () => router.replace('/matches'),
+    onUnmatched: () => router.replace('/matches'),
+  })
 
   const myId = getSessionUserId()
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -239,6 +248,14 @@ export default function ChatPage() {
             Contacto
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => setMenu(true)}
+          aria-label="Más opciones"
+          className="shrink-0 p-1.5 text-neutral-500"
+        >
+          <MoreVertical size={20} />
+        </button>
       </header>
 
       {showContact && hasContact && (
@@ -363,6 +380,41 @@ export default function ChatPage() {
           <Send size={18} />
         </button>
       </form>
+
+      {safety.overlays}
+      <AnimatePresence>
+        {menu && (
+          <ActionSheet
+            key="menu"
+            onClose={() => setMenu(false)}
+            actions={[
+              {
+                label: 'Reportar',
+                destructive: true,
+                onClick: () => {
+                  setMenu(false)
+                  safety.openReport({ name: conv.other.name, userId: conv.other.userId, type: 'chat', conversationId: id })
+                },
+              },
+              {
+                label: 'Deshacer match',
+                onClick: () => {
+                  setMenu(false)
+                  safety.openUnmatch(id, conv.other.name)
+                },
+              },
+              {
+                label: 'Bloquear',
+                destructive: true,
+                onClick: () => {
+                  setMenu(false)
+                  safety.openBlock({ name: conv.other.name, userId: conv.other.userId })
+                },
+              },
+            ]}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

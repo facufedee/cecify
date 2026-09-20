@@ -7,6 +7,8 @@ import { Heart, Loader2, RotateCcw, X } from 'lucide-react'
 import SwipeCard, { type SwipeAction, type SwipeCardHandle } from '@/components/discover/SwipeCard'
 import ProfileSheet from '@/components/discover/ProfileSheet'
 import MatchOverlay from '@/components/discover/MatchOverlay'
+import ActionSheet from '@/components/wall/ActionSheet'
+import { useSafety } from '@/components/safety/useSafety'
 import { authFetch } from '@/lib/client-auth'
 import type { DiscoverProfile } from '@/lib/profile-schema'
 
@@ -21,6 +23,14 @@ export default function DiscoverPage() {
   const [match, setMatch] = useState<MatchInfo | null>(null)
   const [myPhoto, setMyPhoto] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [safetyFor, setSafetyFor] = useState<DiscoverProfile | null>(null)
+  // Al bloquear, la persona sale del mazo y se cierra el detalle
+  const safety = useSafety({
+    onBlocked: (t) => {
+      setDeck((d) => d.filter((p) => p.id !== t.profileId))
+      setInfo(null)
+    },
+  })
 
   const topCard = useRef<SwipeCardHandle>(null)
   const seen = useRef(new Set<string>()) // en el mazo o ya swipeados (evita repetir mientras el servidor registra)
@@ -182,7 +192,39 @@ export default function DiscoverPage() {
       )}
 
       <AnimatePresence>
-        {info && <ProfileSheet key="sheet" profile={info} onClose={() => setInfo(null)} />}
+        {info && (
+          <ProfileSheet
+            key="sheet"
+            profile={info}
+            onClose={() => setInfo(null)}
+            onSafety={() => setSafetyFor(info)}
+          />
+        )}
+        {safetyFor && (
+          <ActionSheet
+            key="safety"
+            title={safetyFor.name}
+            onClose={() => setSafetyFor(null)}
+            actions={[
+              {
+                label: 'Reportar',
+                destructive: true,
+                onClick: () => {
+                  safety.openReport({ name: safetyFor.name, profileId: safetyFor.id, type: 'profile' })
+                  setSafetyFor(null)
+                },
+              },
+              {
+                label: 'Bloquear',
+                destructive: true,
+                onClick: () => {
+                  safety.openBlock({ name: safetyFor.name, profileId: safetyFor.id })
+                  setSafetyFor(null)
+                },
+              },
+            ]}
+          />
+        )}
         {match && (
           <MatchOverlay
             key="match"
@@ -193,6 +235,7 @@ export default function DiscoverPage() {
           />
         )}
       </AnimatePresence>
+      {safety.overlays}
     </div>
   )
 }

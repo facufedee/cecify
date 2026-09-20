@@ -13,7 +13,7 @@ const ITEMS = [
 ]
 
 // Pantallas que ocupan todo el alto (compositores y edicion)
-const FULL_SCREEN = ['/photos/new', '/stories/new', '/profile/edit']
+const FULL_SCREEN = ['/photos/new', '/stories/new', '/profile/edit', '/profile/blocked']
 
 export default function BottomNav() {
   const pathname = usePathname()

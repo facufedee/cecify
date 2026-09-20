@@ -7,10 +7,12 @@ export type SheetAction = { label: string; onClick: () => void; destructive?: bo
 // Menu centrado, como el de "más opciones" de Instagram
 export default function ActionSheet({
   title,
+  message,
   actions,
   onClose,
 }: {
   title?: string
+  message?: string // explicacion breve bajo el titulo
   actions: SheetAction[]
   onClose: () => void
 }) {
@@ -32,7 +34,12 @@ export default function ActionSheet({
         transition={{ duration: 0.15 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <p className="border-b border-ig-border px-4 py-5 text-base font-semibold">{title}</p>}
+        {title && (
+          <div className="border-b border-ig-border px-5 py-5">
+            <p className="text-base font-semibold">{title}</p>
+            {message && <p className="mt-1.5 text-xs leading-relaxed text-ig-muted">{message}</p>}
+          </div>
+        )}
         {actions.map((a) => (
           <button
             key={a.label}

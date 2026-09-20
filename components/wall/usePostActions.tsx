@@ -4,6 +4,7 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import ActionSheet from '@/components/wall/ActionSheet'
+import { useSafety } from '@/components/safety/useSafety'
 import CommentsSheet from '@/components/wall/CommentsSheet'
 import { authFetch, getSessionUserId } from '@/lib/client-auth'
 import type { WallPhoto } from '@/lib/db'
@@ -16,6 +17,10 @@ export function usePostActions(photos: WallPhoto[], setPhotos: Dispatch<SetState
   const [menuFor, setMenuFor] = useState<WallPhoto | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<WallPhoto | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Al bloquear a alguien, sus fotos salen de la lista
+  const safety = useSafety({
+    onBlocked: (t) => setPhotos((prev) => prev.filter((p) => p.authorId !== t.userId)),
+  })
 
   const patch = useCallback(
     (id: string, changes: Partial<WallPhoto>) =>
@@ -69,7 +74,17 @@ export function usePostActions(photos: WallPhoto[], setPhotos: Dispatch<SetState
           <CommentsSheet
             key="comments"
             photo={commentsPhoto}
+            myId={myId}
             onClose={() => setCommentsFor(null)}
+            onReport={(c) =>
+              safety.openReport({
+                name: c.authorName,
+                userId: c.authorId,
+                type: 'comment',
+                targetId: c.id,
+                photoId: commentsPhoto.id,
+              })
+            }
             onAdded={(id) =>
               setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, commentsCount: p.commentsCount + 1 } : p)))
             }
@@ -83,6 +98,29 @@ export function usePostActions(photos: WallPhoto[], setPhotos: Dispatch<SetState
               menuFor.authorId === myId
                 ? [{ label: 'Eliminar', destructive: true, onClick: () => setConfirmDelete(menuFor) }]
                 : [
+                    {
+                      label: 'Reportar',
+                      destructive: true,
+                      onClick: () => {
+                        const target = menuFor
+                        setMenuFor(null)
+                        safety.openReport({
+                          name: target.authorName,
+                          userId: target.authorId,
+                          type: 'photo',
+                          targetId: target.id,
+                        })
+                      },
+                    },
+                    {
+                      label: `Bloquear a ${menuFor.authorName}`,
+                      destructive: true,
+                      onClick: () => {
+                        const target = menuFor
+                        setMenuFor(null)
+                        safety.openBlock({ name: target.authorName, userId: target.authorId })
+                      },
+                    },
                     {
                       label: 'Ver perfil',
                       onClick: () => {
@@ -106,6 +144,7 @@ export function usePostActions(photos: WallPhoto[], setPhotos: Dispatch<SetState
           />
         )}
       </AnimatePresence>
+      {safety.overlays}
       {error && (
         <p
           role="alert"
