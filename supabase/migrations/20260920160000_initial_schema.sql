@@ -161,3 +161,14 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photo_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Storage: bucket publico para fotos de perfil (las URLs llevan userId + nombre aleatorio).
+-- Guardado con to_regclass para que la migracion tambien corra en la base local (sin schema storage).
+DO $$
+BEGIN
+  IF to_regclass('storage.buckets') IS NOT NULL THEN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    VALUES ('profile-photos', 'profile-photos', true, 5242880, ARRAY['image/jpeg'])
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
