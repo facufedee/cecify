@@ -228,8 +228,9 @@ export type SwipeResult =
       status: 'ok'
       matched: boolean
       matchId: string | null
+      conversationId: string | null
       duplicate: boolean
-      target: { name: string; mainPhotoUrl: string }
+      target: { userId: string; name: string; mainPhotoUrl: string }
     }
 
 // Swipe sobre un perfil (por id de perfil). El match se decide dentro de record_swipe (SQL).
@@ -294,11 +295,211 @@ export const recordSwipe = async (
     row = (data as SwipeRow[])[0]
   }
 
+  let conversationId: string | null = null
+  if (row.matched && row.match_row_id) {
+    conversationId = await conversationIdForMatch(row.match_row_id)
+  }
+
   return {
     status: 'ok',
     matched: row.matched,
     matchId: row.match_row_id,
+    conversationId,
     duplicate: row.was_duplicate,
-    target: { name: target.name, mainPhotoUrl: target.mainPhotoUrl },
+    target: { userId: target.userId, name: target.name, mainPhotoUrl: target.mainPhotoUrl },
   }
+}
+
+const conversationIdForMatch = async (matchId: string) => {
+  if (useLocal) {
+    const db = await localDb()
+    const { rows } = await db.query<{ id: string }>('select id from conversations where match_id = $1', [matchId])
+    return rows[0]?.id ?? null
+  }
+  const { data, error } = await supabaseServer()
+    .from('conversations')
+    .select('id')
+    .eq('match_id', matchId)
+    .maybeSingle()
+  if (error) throw error
+  return data?.id ?? null
+}
+
+// ---- Matches y chat ----
+
+// Llama una funcion SQL (supabase.rpc o, en local, select con argumentos con nombre).
+// `fn` y las claves de `args` son constantes internas, nunca input del usuario.
+const callFn = async <T>(fn: string, args: Record<string, unknown>): Promise<T[]> => {
+  if (useLocal) {
+    const db = await localDb()
+    const keys = Object.keys(args)
+    const named = keys.map((k, i) => `${k} => $${i + 1}`).join(', ')
+    const { rows } = await db.query<T>(`select * from ${fn}(${named})`, keys.map((k) => args[k]))
+    return rows
+  }
+  const { data, error } = await supabaseServer().rpc(fn, args)
+  if (error) throw error
+  return (data ?? []) as T[]
+}
+
+const iso = (v: string | Date) => new Date(v).toISOString()
+
+export type Conversation = {
+  id: string
+  matchId: string
+  matchedAt: string
+  other: {
+    userId: string
+    profileId: string
+    name: string
+    age: number
+    photo: string
+    contact: { instagram?: string; whatsapp?: string }
+  }
+  lastMessage: { content: string; fromMe: boolean; at: string } | null
+  unread: number
+}
+
+type ConversationRow = {
+  conversation_id: string
+  match_id: string
+  matched_at: string | Date
+  other_user_id: string
+  other_profile_id: string
+  other_name: string
+  other_age: number | null
+  other_photo: string | null
+  other_contact: Conversation['other']['contact'] | null
+  last_content: string | null
+  last_from: string | null
+  last_at: string | Date | null
+  unread_count: number
+}
+
+export const listConversations = async (userId: string): Promise<Conversation[]> => {
+  const rows = await callFn<ConversationRow>('list_conversations', { p_user: userId })
+  return rows.map((r) => ({
+    id: r.conversation_id,
+    matchId: r.match_id,
+    matchedAt: iso(r.matched_at),
+    other: {
+      userId: r.other_user_id,
+      profileId: r.other_profile_id,
+      name: r.other_name,
+      age: r.other_age ?? 0,
+      photo: r.other_photo ?? '',
+      contact: r.other_contact ?? {},
+    },
+    lastMessage:
+      r.last_content !== null && r.last_at
+        ? { content: r.last_content, fromMe: r.last_from === userId, at: iso(r.last_at) }
+        : null,
+    unread: r.unread_count,
+  }))
+}
+
+export type ChatMessage = {
+  id: string
+  conversationId: string
+  fromUserId: string
+  content: string
+  createdAt: string
+  isRead?: boolean
+}
+
+type MessageRow = {
+  msg_id: string
+  msg_from: string
+  msg_content: string
+  msg_is_read: boolean
+  msg_created_at: string | Date
+}
+
+export const getMessages = async (
+  userId: string,
+  conversationId: string,
+  opts: { before?: string; after?: string; limit?: number } = {}
+): Promise<ChatMessage[]> => {
+  const rows = await callFn<MessageRow>('get_messages', {
+    p_user: userId,
+    p_conversation: conversationId,
+    p_before: opts.before ?? null,
+    p_after: opts.after ?? null,
+    p_limit: opts.limit ?? 50,
+  })
+  return rows.map((r) => ({
+    id: r.msg_id,
+    conversationId,
+    fromUserId: r.msg_from,
+    content: r.msg_content,
+    createdAt: iso(r.msg_created_at),
+    isRead: r.msg_is_read,
+  }))
+}
+
+type SentRow = {
+  msg_id: string
+  msg_conversation_id: string
+  msg_from: string
+  msg_to: string
+  msg_content: string
+  msg_created_at: string | Date
+}
+
+// null = el usuario no participa de esa conversacion
+export const sendMessage = async (
+  userId: string,
+  conversationId: string,
+  content: string
+): Promise<(ChatMessage & { toUserId: string }) | null> => {
+  const [r] = await callFn<SentRow>('send_message', {
+    p_from: userId,
+    p_conversation: conversationId,
+    p_content: content,
+  })
+  if (!r) return null
+  return {
+    id: r.msg_id,
+    conversationId: r.msg_conversation_id,
+    fromUserId: r.msg_from,
+    toUserId: r.msg_to,
+    content: r.msg_content,
+    createdAt: iso(r.msg_created_at),
+  }
+}
+
+export const markRead = async (userId: string, conversationId: string) => {
+  const [r] = await callFn<{ marked: number }>('mark_read', { p_user: userId, p_conversation: conversationId })
+  return r?.marked ?? 0
+}
+
+export const unreadTotal = async (userId: string) => {
+  if (useLocal) {
+    const db = await localDb()
+    const { rows } = await db.query<{ n: number }>(
+      `select count(*)::int as n from messages
+        where to_user_id = $1 and is_read = false and deleted_at is null`,
+      [userId]
+    )
+    return rows[0].n
+  }
+  const { count, error } = await supabaseServer()
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('to_user_id', userId)
+    .eq('is_read', false)
+    .is('deleted_at', null)
+  if (error) throw error
+  return count ?? 0
+}
+
+// SOLO DESARROLLO (LOCAL_DB=1): si el usuario es un invitado demo, para responderle solo.
+export const isDemoUser = async (userId: string) => {
+  if (!useLocal) return false
+  const db = await localDb()
+  const { rows } = await db.query<{ ok: boolean }>(
+    "select email like 'demo%@demo.cecify.local' as ok from users where id = $1",
+    [userId]
+  )
+  return rows[0]?.ok === true
 }

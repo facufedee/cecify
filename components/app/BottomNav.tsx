@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Compass, Heart, Image as ImageIcon, User } from 'lucide-react'
+import { useRealtime } from '@/components/app/RealtimeProvider'
 
 const ITEMS = [
   { href: '/discover', label: 'Descubrir', Icon: Compass },
@@ -13,11 +14,16 @@ const ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const { unread } = useRealtime()
+
+  // El chat ocupa toda la pantalla
+  if (pathname.startsWith('/matches/')) return null
 
   return (
     <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
       {ITEMS.map(({ href, label, Icon }) => {
         const active = pathname === href
+        const badge = href === '/matches' && unread > 0 ? unread : 0
         return (
           <Link
             key={href}
@@ -27,7 +33,17 @@ export default function BottomNav() {
               active ? 'text-brand' : 'text-neutral-400 hover:text-neutral-600'
             }`}
           >
-            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+            <span className="relative">
+              <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+              {badge > 0 && (
+                <span
+                  aria-label={`${badge} mensajes sin leer`}
+                  className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                >
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
+            </span>
             {label}
           </Link>
         )

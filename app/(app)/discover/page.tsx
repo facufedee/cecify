@@ -10,7 +10,7 @@ import MatchOverlay from '@/components/discover/MatchOverlay'
 import { authFetch } from '@/lib/client-auth'
 import type { DiscoverProfile } from '@/lib/profile-schema'
 
-type MatchInfo = { name: string; mainPhotoUrl: string }
+type MatchInfo = { name: string; mainPhotoUrl: string; conversationId: string | null }
 
 export default function DiscoverPage() {
   const router = useRouter()
@@ -82,7 +82,12 @@ export default function DiscoverPage() {
         showError(data.error ?? 'No se pudo guardar tu elección')
         return
       }
-      if (data.matchCreated) setMatch(data.matchedProfile ?? { name: profile.name, mainPhotoUrl: profile.mainPhotoUrl })
+      if (data.matchCreated) {
+        setMatch({
+          ...(data.matchedProfile ?? { name: profile.name, mainPhotoUrl: profile.mainPhotoUrl }),
+          conversationId: data.conversationId ?? null,
+        })
+      }
     } catch {
       showError('Sin conexión: no se guardó tu elección')
     }
@@ -184,7 +189,7 @@ export default function DiscoverPage() {
             myPhoto={myPhoto}
             other={match}
             onKeepGoing={() => setMatch(null)}
-            onSeeMatches={() => router.push('/matches')}
+            onMessage={() => router.push(match.conversationId ? `/matches/${match.conversationId}` : '/matches')}
           />
         )}
       </AnimatePresence>

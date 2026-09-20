@@ -10,6 +10,18 @@ export const getToken = () => {
   }
 }
 
+// Solo para la UI (saber cuales mensajes son mios). No es una verificacion: el servidor valida el JWT.
+export const getSessionUserId = () => {
+  const token = getToken()
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.userId === 'string' ? (payload.userId as string) : null
+  } catch {
+    return null
+  }
+}
+
 export const clearToken = () => {
   try {
     localStorage.removeItem(TOKEN_KEY)

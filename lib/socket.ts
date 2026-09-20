@@ -4,28 +4,16 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
 
 let socket: Socket | null = null
 
-export const connectSocket = (userId: string, token: string) => {
-  if (socket?.connected) return socket
+// Una sola conexion por sesion. La identidad la fija el servidor a partir del JWT.
+export const connectSocket = (token: string) => {
+  if (socket) return socket
 
   socket = io(SOCKET_URL, {
-    auth: {
-      token,
-      userId,
-    },
+    auth: { token },
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5,
+    reconnectionDelayMax: 10000,
   })
-
-  socket.on('connect', () => {
-    console.log('✅ Socket connected:', socket?.id)
-  })
-
-  socket.on('disconnect', () => {
-    console.log('❌ Socket disconnected')
-  })
-
   return socket
 }
 

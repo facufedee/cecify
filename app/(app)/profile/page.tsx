@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { clearToken } from '@/lib/client-auth'
+import { disconnectSocket } from '@/lib/socket'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -12,6 +13,7 @@ export default function ProfilePage() {
       <button
         type="button"
         onClick={() => {
+          disconnectSocket()
           clearToken()
           router.replace('/login')
         }}

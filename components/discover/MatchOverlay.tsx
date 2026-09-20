@@ -7,12 +7,12 @@ type Props = {
   myPhoto: string | null
   other: { name: string; mainPhotoUrl: string }
   onKeepGoing: () => void
-  onSeeMatches: () => void
+  onMessage: () => void
 }
 
 const photoClass = 'h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg'
 
-export default function MatchOverlay({ myPhoto, other, onKeepGoing, onSeeMatches }: Props) {
+export default function MatchOverlay({ myPhoto, other, onKeepGoing, onMessage }: Props) {
   return (
     <motion.div
       role="dialog"
@@ -49,10 +49,10 @@ export default function MatchOverlay({ myPhoto, other, onKeepGoing, onSeeMatches
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
         <button
           type="button"
-          onClick={onSeeMatches}
+          onClick={onMessage}
           className="rounded-2xl bg-white py-3.5 font-medium text-brand"
         >
-          Ver mis matches
+          Enviar mensaje
         </button>
         <button
           type="button"

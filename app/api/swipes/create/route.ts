@@ -1,5 +1,7 @@
+import { after } from 'next/server'
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getUserContext, recordSwipe } from '@/lib/db'
+import { emitTo } from '@/lib/realtime'
 import { rateLimit } from '@/lib/rate-limit'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -50,11 +52,24 @@ export async function POST(req: Request) {
       return Response.json({ error: 'No podés swipearte a vos mismo' }, { status: 400 })
     }
 
-    // TODO (Semana 2): emitir 'match:created' por Socket.io y enviar push cuando result.matched
+    if (result.matched) {
+      const me = ctx.profile
+      after(() =>
+        emitTo(result.target.userId, 'match:created', {
+          conversationId: result.conversationId,
+          name: me.name,
+          photo: me.mainPhotoUrl,
+        })
+      )
+    }
+
     return Response.json({
       matchCreated: result.matched,
       matchId: result.matchId,
-      matchedProfile: result.matched ? result.target : undefined,
+      conversationId: result.conversationId,
+      matchedProfile: result.matched
+        ? { name: result.target.name, mainPhotoUrl: result.target.mainPhotoUrl }
+        : undefined,
     })
   } catch (error) {
     console.error('swipes/create error:', error)
