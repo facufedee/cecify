@@ -166,9 +166,11 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
 }
 
 // Solo base local (usado por /api/dev/reset-profile)
-export const resetProfile = async (userId: string, only?: 'swipes') => {
+export const resetProfile = async (userId: string, only?: 'swipes' | 'story-views') => {
   if (!useLocal) throw new Error('resetProfile solo esta disponible con LOCAL_DB=1')
   const db = await localDb()
+  await db.query('delete from story_views where viewer_id = $1', [userId])
+  if (only === 'story-views') return
   // matches -> conversations -> messages caen en cascada
   await db.query('delete from matches where user1_id = $1 or user2_id = $1', [userId])
   await db.query('delete from swipes where from_user_id = $1 or to_user_id = $1', [userId])
@@ -655,4 +657,102 @@ export const getAuthor = async (userId: string) => {
     .maybeSingle()
   if (error) throw error
   return data ? { name: data.name as string, photo: (data.main_photo_url as string) ?? '', bio: (data.bio as string) ?? '' } : null
+}
+
+// ---- Historias (24 h) ----
+
+export type StoryAuthor = {
+  authorId: string
+  name: string
+  photo: string
+  count: number
+  latestAt: string
+  hasUnseen: boolean
+}
+
+export type Story = {
+  id: string
+  photoUrl: string
+  caption: string | null
+  createdAt: string
+  expiresAt: string
+  seenByMe: boolean
+  viewsCount: number | null // solo lo ve el autor
+}
+
+export type StoryViewerInfo = { id: string; name: string; photo: string; viewedAt: string }
+
+export const listStoryRings = async (userId: string): Promise<StoryAuthor[]> => {
+  const rows = await callFn<{
+    author_id: string
+    author_name: string
+    author_photo: string | null
+    stories_count: number
+    latest_at: string | Date
+    has_unseen: boolean
+  }>('list_story_rings', { p_user: userId })
+  return rows.map((r) => ({
+    authorId: r.author_id,
+    name: r.author_name,
+    photo: r.author_photo ?? '',
+    count: r.stories_count,
+    latestAt: iso(r.latest_at),
+    hasUnseen: r.has_unseen,
+  }))
+}
+
+export const listStories = async (userId: string, authorId: string): Promise<Story[]> => {
+  const rows = await callFn<{
+    story_id: string
+    photo_url: string
+    caption: string | null
+    created_at: string | Date
+    expires_at: string | Date
+    seen_by_me: boolean
+    views_count: number | null
+  }>('list_stories', { p_user: userId, p_author: authorId })
+  return rows.map((r) => ({
+    id: r.story_id,
+    photoUrl: r.photo_url,
+    caption: r.caption,
+    createdAt: iso(r.created_at),
+    expiresAt: iso(r.expires_at),
+    seenByMe: r.seen_by_me,
+    viewsCount: r.views_count,
+  }))
+}
+
+export const createStory = async (userId: string, url: string, caption: string) => {
+  const [r] = await callFn<{ new_story_id: string }>('create_story', {
+    p_user: userId,
+    p_url: url,
+    p_caption: caption,
+  })
+  return (await listStories(userId, userId)).find((s) => s.id === r.new_story_id)!
+}
+
+// true si existia y era del usuario
+export const deleteStory = async (userId: string, storyId: string) => {
+  const rows = await callFn<{ deleted_id: string }>('delete_story', { p_user: userId, p_story: storyId })
+  return rows.length > 0
+}
+
+export const markStoryViewed = async (userId: string, storyId: string) => {
+  const [r] = await callFn<{ marked: boolean }>('mark_story_viewed', { p_user: userId, p_story: storyId })
+  return r?.marked ?? false
+}
+
+export const listStoryViewers = async (userId: string, storyId: string): Promise<StoryViewerInfo[]> => {
+  const rows = await callFn<{
+    viewer_id: string
+    viewer_name: string
+    viewer_photo: string | null
+    viewed_at: string | Date
+  }>('list_story_viewers', { p_user: userId, p_story: storyId })
+  return rows.map((r) => ({
+    id: r.viewer_id,
+    name: r.viewer_name,
+    photo: r.viewer_photo ?? '',
+    viewedAt: iso(r.viewed_at),
+  }))
 }

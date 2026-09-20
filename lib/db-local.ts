@@ -151,6 +151,63 @@ const seedWall = async (db: PGlite) => {
   await db.query('insert into _local_migrations (name) values ($1)', [WALL_SEED])
 }
 
+// Historias de ejemplo (una sola vez). Las horas se cuentan desde que se siembra: duran 24 h.
+const STORIES_SEED = 'seed:stories-v1'
+const STORIES = [
+  { by: 2, caption: 'Buen día, jardín ☀️', hoursAgo: 2, colors: ['#6C8FA3', '#F5EFE0'] },
+  { by: 2, caption: null, hoursAgo: 0.5, colors: ['#E9A23B', '#7A5C8E'] },
+  { by: 3, caption: 'Mi compañero de baile 🐶', hoursAgo: 5, colors: ['#B7684A', '#F0DFC2'] },
+  { by: 5, caption: 'Ensayando el primer baile', hoursAgo: 20, colors: ['#3F7F7A', '#F3E7CF'] },
+]
+
+const storyPhoto = (i: number, colors: string[]) => {
+  let seed = 777 + i * 1013
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+  const dots = Array.from({ length: 26 }, () => {
+    const r = 16 + rnd() * 60
+    return `<circle cx="${(rnd() * 720).toFixed(0)}" cy="${(rnd() * 1280).toFixed(0)}" r="${r.toFixed(0)}" fill="#fff" fill-opacity="${(0.15 + rnd() * 0.35).toFixed(2)}"/>`
+  }).join('')
+  return sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0" stop-color="${colors[0]}"/><stop offset="1" stop-color="${colors[1]}"/>
+        </linearGradient></defs>
+        <rect width="720" height="1280" fill="url(#g)"/>${dots}
+        <circle cx="360" cy="520" r="140" fill="#fff" fill-opacity=".5"/>
+      </svg>`
+    )
+  )
+    .jpeg({ quality: 82 })
+    .toBuffer()
+}
+
+const seedStories = async (db: PGlite) => {
+  const done = await db.query('select 1 from _local_migrations where name = $1', [STORIES_SEED])
+  if (done.rows.length > 0) return
+
+  const dir = path.join(process.cwd(), 'public', 'uploads', 'demo')
+  mkdirSync(dir, { recursive: true })
+  const userId = async (n: number) =>
+    (await db.query<{ id: string }>('select id from users where email = $1', [`demo${n}@demo.cecify.local`])).rows[0].id
+
+  const ids: string[] = []
+  for (const [i, st] of STORIES.entries()) {
+    const file = path.join(dir, `story-${i + 1}.jpg`)
+    if (!existsSync(file)) writeFileSync(file, await storyPhoto(i, st.colors))
+    const { rows } = await db.query<{ id: string }>(
+      `insert into stories (user_id, photo_url, caption, created_at, expires_at)
+       values ($1, $2, $3, now() - ($4 || ' minutes')::interval, now() - ($4 || ' minutes')::interval + interval '24 hours')
+       returning id`,
+      [await userId(st.by), `/uploads/demo/story-${i + 1}.jpg`, st.caption, String(Math.round(st.hoursAgo * 60))]
+    )
+    ids.push(rows[0].id)
+  }
+  // Lucia ya vio la de Camila (para ver un anillo "visto" en esa cuenta)
+  await db.query('insert into story_views (story_id, viewer_id) values ($1, $2)', [ids[2], await userId(1)])
+  await db.query('insert into _local_migrations (name) values ($1)', [STORIES_SEED])
+}
+
 // Idempotente: se re-ejecuta tras cada recarga del modulo (HMR) sobre la misma conexion
 const prepare = async (db: PGlite) => {
   await db.exec('create table if not exists _local_migrations (name text primary key)')
@@ -184,6 +241,7 @@ const prepare = async (db: PGlite) => {
   )
   await seedDemos(db)
   await seedWall(db)
+  await seedStories(db)
   return db
 }
 

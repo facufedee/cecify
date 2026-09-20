@@ -3,11 +3,13 @@ export default function StoryRing({
   src,
   size = 64,
   ring = true,
+  seen = false,
   alt = '',
 }: {
   src: string
   size?: number
   ring?: boolean
+  seen?: boolean // ya vista: el anillo pasa a gris
   alt?: string
 }) {
   // Sin foto (todavia cargando o sin perfil) queda un circulo neutro: nunca un <img src="">
@@ -32,7 +34,9 @@ export default function StoryRing({
       style={{
         width: size,
         height: size,
-        background: 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)',
+        background: seen
+          ? '#c7c7c7'
+          : 'linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5)',
       }}
     >
       {image}

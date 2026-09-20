@@ -16,8 +16,8 @@ export default function BottomNav() {
   const pathname = usePathname()
   const { unread } = useRealtime()
 
-  // El chat y el composer de fotos ocupan toda la pantalla
-  if (pathname.startsWith('/matches/') || pathname === '/photos/new') return null
+  // El chat y los compositores de fotos e historias ocupan toda la pantalla
+  if (pathname.startsWith('/matches/') || pathname === '/photos/new' || pathname === '/stories/new') return null
 
   return (
     <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">

@@ -2,17 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { AnimatePresence } from 'framer-motion'
 import { Camera, Loader2, Plus, SquarePlus } from 'lucide-react'
 import PostCard from '@/components/wall/PostCard'
+import ActionSheet from '@/components/wall/ActionSheet'
 import StoryRing from '@/components/wall/StoryRing'
+import StoryViewer from '@/components/stories/StoryViewer'
 import { usePostActions } from '@/components/wall/usePostActions'
 import { REALTIME_EVENTS } from '@/components/app/RealtimeProvider'
 import { authFetch } from '@/lib/client-auth'
-import type { WallPhoto } from '@/lib/db'
+import type { StoryAuthor, WallPhoto } from '@/lib/db'
 
 const PAGE = 8
 
 export default function PhotosPage() {
+  const router = useRouter()
+  const [rings, setRings] = useState<StoryAuthor[]>([])
+  const [storyQueue, setStoryQueue] = useState<StoryAuthor[] | null>(null)
+  const [createMenu, setCreateMenu] = useState(false)
   const [photos, setPhotos] = useState<WallPhoto[]>([])
   const [loaded, setLoaded] = useState(false)
   const [done, setDone] = useState(false)
@@ -63,14 +71,27 @@ export default function PhotosPage() {
     } catch {}
   }, [])
 
+  const loadRings = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/stories')
+      if (res.ok) setRings((await res.json()).rings)
+    } catch {}
+  }, [])
+
   useEffect(() => {
-    const first = setTimeout(loadMore, 0)
+    const first = setTimeout(() => {
+      void loadMore()
+      void loadRings()
+    }, 0)
     authFetch('/api/profiles/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setMyPhoto(data?.profile?.mainPhotoUrl ?? ''))
       .catch(() => {})
 
-    const refresh = () => void refreshTop()
+    const refresh = () => {
+      void refreshTop()
+      void loadRings()
+    }
     window.addEventListener('focus', refresh)
     window.addEventListener(REALTIME_EVENTS.photoLike, refresh)
     return () => {
@@ -78,7 +99,7 @@ export default function PhotosPage() {
       window.removeEventListener('focus', refresh)
       window.removeEventListener(REALTIME_EVENTS.photoLike, refresh)
     }
-  }, [loadMore, refreshTop])
+  }, [loadMore, refreshTop, loadRings])
 
   // Scroll infinito
   useEffect(() => {
@@ -94,41 +115,59 @@ export default function PhotosPage() {
     return () => observer.disconnect()
   }, [done, loaded, loadMore, photos.length])
 
-  // Invitados que publicaron hace poco, en el orden del feed (el "carrusel de historias")
-  const authors = [...new Map(photos.map((p) => [p.authorId, p])).values()].slice(0, 12)
+  // Carrusel: "Tu historia" primero y despues los invitados con historias vigentes (las no vistas antes)
+  const mine = rings.find((r) => r.authorId === actions.myId)
+  const others = rings.filter((r) => r.authorId !== actions.myId)
+
+  const openStories = (authorId: string) => {
+    const ordered = mine ? [mine, ...others] : others
+    const from = ordered.findIndex((r) => r.authorId === authorId)
+    if (from >= 0) setStoryQueue(ordered.slice(from))
+  }
 
   return (
     <div className="flex h-full flex-col font-ig text-ig-text">
       <header className="flex items-center justify-between px-4 py-3">
         <h1 className="text-2xl font-bold tracking-tight">Cecify</h1>
-        <Link href="/photos/new" aria-label="Nueva publicación">
+        <button type="button" onClick={() => setCreateMenu(true)} aria-label="Crear">
           <SquarePlus size={28} strokeWidth={1.75} />
-        </Link>
+        </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loaded && (
           <ul className="flex gap-4 no-scrollbar overflow-x-auto px-4 pb-3 pt-1">
             <li className="shrink-0">
-              <Link href="/photos/new" className="flex w-[68px] flex-col items-center gap-1">
-                <span className="relative">
-                  <StoryRing src={myPhoto} size={64} ring={false} />
-                  <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-ig-link text-white">
-                    <Plus size={12} strokeWidth={3.5} />
-                  </span>
-                </span>
-                <span className="w-full truncate text-center text-xs text-ig-muted">Tu foto</span>
-              </Link>
-            </li>
-            {authors.map((p) => (
-              <li key={p.authorId} className="shrink-0">
+              <div className="relative flex w-[68px] flex-col items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => actions.openAuthor(p.authorId)}
+                  onClick={() => (mine ? openStories(mine.authorId) : router.push('/stories/new'))}
+                  aria-label={mine ? 'Ver tu historia' : 'Crear una historia'}
+                >
+                  <StoryRing src={myPhoto} size={64} ring={Boolean(mine)} />
+                </button>
+                <Link
+                  href="/stories/new"
+                  aria-label="Agregar a tu historia"
+                  className="absolute right-0.5 top-11 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-ig-link text-white"
+                >
+                  <Plus size={12} strokeWidth={3.5} />
+                </Link>
+                <span className="w-full truncate text-center text-xs text-ig-muted">Tu historia</span>
+              </div>
+            </li>
+            {others.map((r) => (
+              <li key={r.authorId} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => openStories(r.authorId)}
+                  aria-label={`Ver la historia de ${r.name}`}
                   className="flex w-[68px] flex-col items-center gap-1"
                 >
-                  <StoryRing src={p.authorPhoto} size={64} alt={`Perfil de ${p.authorName}`} />
-                  <span className="w-full truncate text-center text-xs">{p.authorName}</span>
+                  <StoryRing src={r.photo} size={64} seen={!r.hasUnseen} />
+                  <span className={`w-full truncate text-center text-xs ${r.hasUnseen ? '' : 'text-ig-muted'}`}>
+                    {r.name}
+                  </span>
                 </button>
               </li>
             ))}
@@ -187,6 +226,31 @@ export default function PhotosPage() {
       </div>
 
       {actions.overlays}
+
+      <AnimatePresence>
+        {createMenu && (
+          <ActionSheet
+            key="create"
+            title="Crear"
+            onClose={() => setCreateMenu(false)}
+            actions={[
+              { label: 'Publicación', onClick: () => router.push('/photos/new') },
+              { label: 'Historia', onClick: () => router.push('/stories/new') },
+            ]}
+          />
+        )}
+        {storyQueue && (
+          <StoryViewer
+            key="stories"
+            queue={storyQueue}
+            myId={actions.myId}
+            onClose={() => {
+              setStoryQueue(null)
+              void loadRings()
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
