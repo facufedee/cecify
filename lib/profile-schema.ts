@@ -115,3 +115,15 @@ export const validateProfileInput = (body: unknown): Result => {
     },
   }
 }
+
+// Lo que ve otro invitado en Discover: nunca incluye contacto ni userId
+export type DiscoverProfile = {
+  id: string
+  name: string
+  age: number
+  bio: string
+  mainPhotoUrl: string
+  additionalPhotos: string[]
+  interests: string[]
+  commonInterests: string[]
+}

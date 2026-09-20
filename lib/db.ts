@@ -166,8 +166,139 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
 }
 
 // Solo base local (usado por /api/dev/reset-profile)
-export const resetProfile = async (userId: string) => {
+export const resetProfile = async (userId: string, only?: 'swipes') => {
   if (!useLocal) throw new Error('resetProfile solo esta disponible con LOCAL_DB=1')
   const db = await localDb()
-  await db.query('delete from profiles where user_id = $1', [userId])
+  // matches -> conversations -> messages caen en cascada
+  await db.query('delete from matches where user1_id = $1 or user2_id = $1', [userId])
+  await db.query('delete from swipes where from_user_id = $1 or to_user_id = $1', [userId])
+  if (only !== 'swipes') await db.query('delete from profiles where user_id = $1', [userId])
+}
+
+// ---- Discover / swipes ----
+
+type DiscoverRow = {
+  id: string
+  name: string
+  age: number | null
+  bio: string | null
+  main_photo_url: string
+  additional_photos: string[] | null
+  interests: string[] | null
+}
+
+export const discoverProfiles = async (userId: string, exclude: string[], limit = 10) => {
+  let rows: DiscoverRow[]
+  if (useLocal) {
+    const db = await localDb()
+    rows = (
+      await db.query<DiscoverRow>('select * from discover_profiles($1, $2, $3::uuid[])', [
+        userId,
+        limit,
+        exclude,
+      ])
+    ).rows
+  } else {
+    const { data, error } = await supabaseServer().rpc('discover_profiles', {
+      p_user: userId,
+      p_limit: limit,
+      p_exclude: exclude,
+    })
+    if (error) throw error
+    rows = data as DiscoverRow[]
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    age: r.age ?? 0,
+    bio: r.bio ?? '',
+    mainPhotoUrl: r.main_photo_url,
+    additionalPhotos: r.additional_photos ?? [],
+    interests: r.interests ?? [],
+  }))
+}
+
+type SwipeRow = { matched: boolean; match_row_id: string | null; was_duplicate: boolean }
+
+export type SwipeResult =
+  | { status: 'not_found' }
+  | { status: 'self' }
+  | {
+      status: 'ok'
+      matched: boolean
+      matchId: string | null
+      duplicate: boolean
+      target: { name: string; mainPhotoUrl: string }
+    }
+
+// Swipe sobre un perfil (por id de perfil). El match se decide dentro de record_swipe (SQL).
+export const recordSwipe = async (
+  fromUserId: string,
+  profileId: string,
+  action: 'like' | 'skip'
+): Promise<SwipeResult> => {
+  let target: { userId: string; name: string; mainPhotoUrl: string; email?: string } | null
+
+  if (useLocal) {
+    const db = await localDb()
+    const { rows } = await db.query<{ user_id: string; name: string; main_photo_url: string; email: string }>(
+      `select p.user_id, p.name, p.main_photo_url, u.email
+         from profiles p join users u on u.id = p.user_id where p.id = $1`,
+      [profileId]
+    )
+    target = rows[0]
+      ? { userId: rows[0].user_id, name: rows[0].name, mainPhotoUrl: rows[0].main_photo_url, email: rows[0].email }
+      : null
+  } else {
+    const { data, error } = await supabaseServer()
+      .from('profiles')
+      .select('user_id, name, main_photo_url')
+      .eq('id', profileId)
+      .maybeSingle()
+    if (error) throw error
+    target = data
+      ? { userId: data.user_id, name: data.name, mainPhotoUrl: data.main_photo_url ?? '' }
+      : null
+  }
+
+  if (!target) return { status: 'not_found' }
+  if (target.userId === fromUserId) return { status: 'self' }
+
+  let row: SwipeRow
+  if (useLocal) {
+    const db = await localDb()
+    // SOLO DESARROLLO: los invitados demo impares (demo1, demo3, demo5) le dan like de vuelta
+    // a quien les da like, para poder ver la pantalla de match sin dos personas reales.
+    const demo = target.email?.match(/^demo(\d+)@demo\.cecify\.local$/)
+    if (action === 'like' && demo && Number(demo[1]) % 2 === 1) {
+      await db.query(
+        `insert into swipes (from_user_id, to_user_id, action) values ($1, $2, 'like') on conflict do nothing`,
+        [target.userId, fromUserId]
+      )
+    }
+    row = (
+      await db.query<SwipeRow>('select * from record_swipe($1, $2, $3::swipe_action)', [
+        fromUserId,
+        target.userId,
+        action,
+      ])
+    ).rows[0]
+  } else {
+    const { data, error } = await supabaseServer().rpc('record_swipe', {
+      p_from: fromUserId,
+      p_to: target.userId,
+      p_action: action,
+    })
+    if (error) throw error
+    row = (data as SwipeRow[])[0]
+  }
+
+  return {
+    status: 'ok',
+    matched: row.matched,
+    matchId: row.match_row_id,
+    duplicate: row.was_duplicate,
+    target: { name: target.name, mainPhotoUrl: target.mainPhotoUrl },
+  }
 }

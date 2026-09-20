@@ -1,0 +1,63 @@
+import { getAuth, unauthorized } from '@/lib/api-auth'
+import { getUserContext, recordSwipe } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export async function POST(req: Request) {
+  const auth = getAuth(req)
+  if (!auth) return unauthorized()
+
+  const limit = rateLimit(`swipe:${auth.userId}`, 30, 60_000)
+  if (!limit.ok) {
+    return Response.json(
+      { error: 'Vas muy rápido, esperá unos segundos' },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } }
+    )
+  }
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: 'Body inválido' }, { status: 400 })
+  }
+
+  const { profileId, action } = (body ?? {}) as { profileId?: unknown; action?: unknown }
+  if (
+    typeof profileId !== 'string' ||
+    !UUID_RE.test(profileId) ||
+    (action !== 'like' && action !== 'skip')
+  ) {
+    return Response.json({ error: 'Datos inválidos' }, { status: 400 })
+  }
+
+  try {
+    const ctx = await getUserContext(auth.userId)
+    if (!ctx) return unauthorized()
+    if (!ctx.profile) {
+      return Response.json(
+        { error: 'Completá tu perfil primero', code: 'PROFILE_REQUIRED' },
+        { status: 403 }
+      )
+    }
+
+    const result = await recordSwipe(auth.userId, profileId, action)
+    if (result.status === 'not_found') {
+      return Response.json({ error: 'Perfil no encontrado' }, { status: 404 })
+    }
+    if (result.status === 'self') {
+      return Response.json({ error: 'No podés swipearte a vos mismo' }, { status: 400 })
+    }
+
+    // TODO (Semana 2): emitir 'match:created' por Socket.io y enviar push cuando result.matched
+    return Response.json({
+      matchCreated: result.matched,
+      matchId: result.matchId,
+      matchedProfile: result.matched ? result.target : undefined,
+    })
+  } catch (error) {
+    console.error('swipes/create error:', error)
+    return Response.json({ error: 'Error del servidor' }, { status: 500 })
+  }
+}
