@@ -18,6 +18,7 @@ type ProfileRow = {
   additional_photos: string[] | null
   interests: string[] | null
   contact_methods: Profile['contactMethods'] | null
+  visibility: boolean | null
 }
 
 const toProfile = (r: ProfileRow): Profile => ({
@@ -30,6 +31,7 @@ const toProfile = (r: ProfileRow): Profile => ({
   additionalPhotos: r.additional_photos ?? [],
   interests: r.interests ?? [],
   contactMethods: r.contact_methods ?? {},
+  visible: r.visibility ?? true,
 })
 
 export const findGuest = async (email: string, code: string) => {
@@ -122,13 +124,14 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
     const db = await localDb()
     const { rows } = await db.query<ProfileRow>(
       `insert into profiles
-         (user_id, name, age, bio, main_photo_url, additional_photos, interests, contact_methods)
-       values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb)
+         (user_id, name, age, bio, main_photo_url, additional_photos, interests, contact_methods, visibility)
+       values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, $9)
        on conflict (user_id) do update set
          name = excluded.name, age = excluded.age, bio = excluded.bio,
          main_photo_url = excluded.main_photo_url,
          additional_photos = excluded.additional_photos,
-         interests = excluded.interests, contact_methods = excluded.contact_methods
+         interests = excluded.interests, contact_methods = excluded.contact_methods,
+         visibility = excluded.visibility
        returning *`,
       [
         userId,
@@ -139,6 +142,7 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
         JSON.stringify(input.additionalPhotos),
         JSON.stringify(input.interests),
         JSON.stringify(input.contactMethods),
+        input.visible,
       ]
     )
     return toProfile(rows[0])
@@ -156,6 +160,7 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
         additional_photos: input.additionalPhotos,
         interests: input.interests,
         contact_methods: input.contactMethods,
+        visibility: input.visible,
       },
       { onConflict: 'user_id' }
     )

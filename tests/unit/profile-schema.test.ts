@@ -60,6 +60,14 @@ describe('validateProfileInput', () => {
     expect(error({ additionalPhotos: ['a', 'b', 'c'] })).toBeNull()
   })
 
+  it('visible es true por defecto, acepta false y rechaza otros tipos', () => {
+    const ok = validateProfileInput(valid)
+    expect(ok.ok && ok.data.visible).toBe(true)
+    const hidden = validateProfileInput({ ...valid, visible: false })
+    expect(hidden.ok && hidden.data.visible).toBe(false)
+    expect(error({ visible: 'no' })).toMatch(/visibilidad/i)
+  })
+
   it('no revienta con basura', () => {
     expect(validateProfileInput(null).ok).toBe(false)
     expect(validateProfileInput('texto').ok).toBe(false)

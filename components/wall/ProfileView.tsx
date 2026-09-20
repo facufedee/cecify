@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, LogOut, MessageCircle } from 'lucide-react'
 import PostCard from '@/components/wall/PostCard'
 import StoryRing from '@/components/wall/StoryRing'
 import { usePostActions } from '@/components/wall/usePostActions'
@@ -81,6 +81,20 @@ export default function ProfileView({ userId }: { userId?: string }) {
           </button>
         )}
         <h1 className="flex-1 truncate text-base font-bold">{author.name}</h1>
+        {isMe && (
+          <button
+            type="button"
+            aria-label="Cerrar sesión"
+            onClick={() => {
+              disconnectSocket()
+              clearToken()
+              router.replace('/login')
+            }}
+            className="p-1"
+          >
+            <LogOut size={22} />
+          </button>
+        )}
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -105,23 +119,12 @@ export default function ProfileView({ userId }: { userId?: string }) {
 
           {isMe && (
             <div className="mt-4 flex gap-2">
-              <Link
-                href="/photos/new"
-                className="flex-1 rounded-lg bg-ig-soft py-1.5 text-center text-sm font-semibold"
-              >
+              <Link href="/profile/edit" className="flex-1 rounded-lg bg-ig-soft py-1.5 text-center text-sm font-semibold">
+                Editar perfil
+              </Link>
+              <Link href="/photos/new" className="flex-1 rounded-lg bg-ig-soft py-1.5 text-center text-sm font-semibold">
                 Nueva publicación
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  disconnectSocket()
-                  clearToken()
-                  router.replace('/login')
-                }}
-                className="flex-1 rounded-lg bg-ig-soft py-1.5 text-sm font-semibold"
-              >
-                Cerrar sesión
-              </button>
             </div>
           )}
         </section>

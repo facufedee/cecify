@@ -12,12 +12,15 @@ const ITEMS = [
   { href: '/profile', label: 'Perfil', Icon: User },
 ]
 
+// Pantallas que ocupan todo el alto (compositores y edicion)
+const FULL_SCREEN = ['/photos/new', '/stories/new', '/profile/edit']
+
 export default function BottomNav() {
   const pathname = usePathname()
   const { unread } = useRealtime()
 
   // El chat y los compositores de fotos e historias ocupan toda la pantalla
-  if (pathname.startsWith('/matches/') || pathname === '/photos/new' || pathname === '/stories/new') return null
+  if (pathname.startsWith('/matches/') || FULL_SCREEN.includes(pathname)) return null
 
   return (
     <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">

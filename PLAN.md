@@ -27,7 +27,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 | 14 | Baja | README genérico de Next; la guía inicial quedó desactualizada (Next 14, JWT en localStorage) | `README.md` |
 
 **Resueltos en la Fase 0:** #1, #2, #6, #7, #9, #11, #12, #13, #14. **Parcial:** #8 (`UUID_RE` ya es compartido; el refactor de `lib/db.ts` sigue en 2.5).
-**Pendientes:** #3 (admin/moderación), #4 (editar perfil), #5 (bloquear/reportar), #10 (renovar sesión).
+**Resuelto en la Fase 1:** #4 (editar perfil). **Pendientes:** #3 (admin/moderación), #5 (bloquear/reportar), #10 (renovar sesión).
 
 ## Fases
 
@@ -39,7 +39,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 - [x] 0.5 CI (GitHub Actions: lint, tipos, tests, build) y README real
 
 ### Fase 1 — Lo que falta para los invitados
-- [ ] 1.1 Editar perfil (foto principal y extra, bio, intereses, contacto, ocultar mi perfil)
+- [x] 1.1 Editar perfil (foto principal y extra, bio, intereses, contacto, ocultar mi perfil)
 - [ ] 1.2 Bloquear, reportar y deshacer match
 - [ ] 1.3 Entrar con un enlace/QR (`/login?email=…&code=…`) y tarjetas imprimibles con QR
 - [ ] 1.4 Panel de administración `/admin`: lista de invitados (alta, CSV, códigos), moderación (borrar fotos, comentarios e historias), reportes, métricas del evento

@@ -36,6 +36,8 @@ export type ProfileInput = {
   additionalPhotos: string[]
   interests: string[]
   contactMethods: ContactMethods
+  // Si es false, no aparece en Descubrir (los matches existentes siguen)
+  visible: boolean
 }
 
 export type Profile = ProfileInput & { id: string; userId: string }
@@ -102,9 +104,14 @@ export const validateProfileInput = (body: unknown): Result => {
     return { ok: false, error: 'Agregá al menos un medio de contacto' }
   }
 
+  if (b.visible !== undefined && typeof b.visible !== 'boolean') {
+    return { ok: false, error: 'Visibilidad inválida' }
+  }
+
   return {
     ok: true,
     data: {
+      visible: b.visible !== false,
       name,
       age,
       bio,

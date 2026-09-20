@@ -36,6 +36,18 @@ describe('discover_profiles', () => {
   })
 })
 
+describe('visibilidad', () => {
+  it('quien se oculta (visibility=false) no aparece en Descubrir y vuelve al activarla', async () => {
+    const names = async () =>
+      (await q<{ name: string }>(db, 'select * from discover_profiles($1)', [a])).map((r) => r.name)
+    const [{ id: cId }] = await q<{ id: string }>(db, 'select id from profiles where user_id = $1', [c])
+    await q(db, 'update profiles set visibility = false where user_id = $1', [c])
+    expect(await names()).not.toContain('C')
+    await q(db, 'update profiles set visibility = true where id = $1', [cId])
+    expect(await names()).toContain('C')
+  })
+})
+
 describe('record_swipe', () => {
   it('un like sin reciproco no crea match y oculta al perfil de Descubrir', async () => {
     expect(await swipe(a, b, 'like')).toMatchObject({ matched: false, was_duplicate: false })

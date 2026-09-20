@@ -1,13 +1,14 @@
-import { Camera, Loader2, Plus } from 'lucide-react'
+import { Camera, Loader2, Plus, X } from 'lucide-react'
 
 type Props = {
   preview: string | null
   uploading: boolean
   main?: boolean
   onFile: (file: File) => void
+  onRemove?: () => void // solo fotos extra que ya tienen imagen
 }
 
-export default function PhotoSlot({ preview, uploading, main = false, onFile }: Props) {
+export default function PhotoSlot({ preview, uploading, main = false, onFile, onRemove }: Props) {
   const label = main ? (preview ? 'Cambiar foto' : 'Agregar foto principal') : 'Agregar foto'
 
   return (
@@ -36,6 +37,21 @@ export default function PhotoSlot({ preview, uploading, main = false, onFile }: 
           {main ? <Camera size={32} /> : <Plus size={24} />}
           <span className="px-2 text-center text-xs font-medium">{label}</span>
         </span>
+      )}
+
+      {onRemove && preview && !uploading && (
+        <button
+          type="button"
+          aria-label="Quitar foto"
+          onClick={(e) => {
+            e.preventDefault() // no abrir el selector de archivos
+            e.stopPropagation()
+            onRemove()
+          }}
+          className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white"
+        >
+          <X size={14} />
+        </button>
       )}
 
       <input
