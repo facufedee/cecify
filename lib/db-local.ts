@@ -74,6 +74,83 @@ const seedDemos = async (db: PGlite) => {
   }
 }
 
+
+// Fotos de ejemplo para el muro (una sola vez: queda registrado en _local_migrations)
+const WALL_SEED = 'seed:wall-v1'
+const WALL = [
+  { by: 1, caption: 'Llegamos temprano para ver la ceremonia 💍', minutesAgo: 12, likes: [2, 3, 5], size: [1080, 1350], colors: ['#F5EFE0', '#4A7C59'] },
+  { by: 3, caption: 'La mesa dulce 😍 no sé por dónde empezar', minutesAgo: 47, likes: [1, 2, 4, 6], size: [1080, 1080], colors: ['#E8B4A0', '#F5EFE0'] },
+  { by: 2, caption: 'Atardecer en el jardín', minutesAgo: 3 * 60, likes: [1, 4], size: [1080, 1350], colors: ['#E9A23B', '#7A5C8E'] },
+  { by: 4, caption: 'Brindis con los primos 🥂', minutesAgo: 5 * 60, likes: [1, 2, 3, 5, 6], size: [1080, 1080], colors: ['#3F7F7A', '#F3E7CF'] },
+  { by: 5, caption: null, minutesAgo: 26 * 60, likes: [3], size: [1080, 1350], colors: ['#A35D6A', '#EFE3CB'] },
+  { by: 6, caption: 'Primer baile: 10/10, cero pisotones', minutesAgo: 30 * 60, likes: [1, 2, 3], size: [1080, 1080], colors: ['#6C8FA3', '#F5EFE0'] },
+  { by: 1, caption: 'Las flores de la entrada 🌿', minutesAgo: 9 * 24 * 60, likes: [], size: [1080, 1350], colors: ['#4A7C59', '#D9C9A0'] },
+]
+const WALL_COMMENTS: [number, number, string][] = [
+  [0, 3, '¡Qué lindo lugar!'],
+  [0, 5, 'Nos vemos en la pista 💃'],
+  [1, 1, 'Guardame un poco 🙏'],
+  [1, 6, 'La mejor parte de la noche jaja'],
+  [3, 2, '¡Salud! 🥂'],
+]
+
+const wallPhoto = (i: number, [w, h]: number[], colors: string[]) => {
+  let seed = 1234 + i * 977
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+  const dots = Array.from({ length: 22 }, () => {
+    const r = 14 + rnd() * 46
+    const fill = rnd() > 0.5 ? '#ffffff' : '#F5EFE0'
+    return `<circle cx="${(rnd() * w).toFixed(0)}" cy="${(rnd() * h).toFixed(0)}" r="${r.toFixed(0)}" fill="${fill}" fill-opacity="${(0.18 + rnd() * 0.4).toFixed(2)}"/>`
+  }).join('')
+  return sharp(
+    Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="${colors[0]}"/><stop offset="1" stop-color="${colors[1]}"/>
+        </linearGradient></defs>
+        <rect width="${w}" height="${h}" fill="url(#g)"/>${dots}
+        <circle cx="${(w * 0.7).toFixed(0)}" cy="${(h * 0.3).toFixed(0)}" r="${(w * 0.13).toFixed(0)}" fill="#ffffff" fill-opacity=".55"/>
+      </svg>`
+    )
+  )
+    .jpeg({ quality: 82 })
+    .toBuffer()
+}
+
+const seedWall = async (db: PGlite) => {
+  const done = await db.query('select 1 from _local_migrations where name = $1', [WALL_SEED])
+  if (done.rows.length > 0) return
+
+  const dir = path.join(process.cwd(), 'public', 'uploads', 'demo')
+  mkdirSync(dir, { recursive: true })
+  const userId = async (n: number) =>
+    (await db.query<{ id: string }>('select id from users where email = $1', [`demo${n}@demo.cecify.local`])).rows[0].id
+
+  const photoIds: string[] = []
+  for (const [i, w] of WALL.entries()) {
+    const file = path.join(dir, `wall-${i + 1}.jpg`)
+    if (!existsSync(file)) writeFileSync(file, await wallPhoto(i, w.size, w.colors))
+    const { rows } = await db.query<{ id: string }>(
+      `insert into photos (user_id, photo_url, caption, created_at)
+       values ($1, $2, $3, now() - ($4 || ' minutes')::interval) returning id`,
+      [await userId(w.by), `/uploads/demo/wall-${i + 1}.jpg`, w.caption, String(w.minutesAgo)]
+    )
+    photoIds.push(rows[0].id)
+    for (const liker of w.likes) {
+      await db.query('insert into photo_likes (photo_id, user_id) values ($1, $2)', [rows[0].id, await userId(liker)])
+    }
+    await db.query('update photos set likes_count = $2 where id = $1', [rows[0].id, w.likes.length])
+  }
+  for (const [photoIdx, by, text] of WALL_COMMENTS) {
+    await db.query('insert into photo_comments (photo_id, user_id, content) values ($1, $2, $3)', [
+      photoIds[photoIdx],
+      await userId(by),
+      text,
+    ])
+  }
+  await db.query('insert into _local_migrations (name) values ($1)', [WALL_SEED])
+}
+
 // Idempotente: se re-ejecuta tras cada recarga del modulo (HMR) sobre la misma conexion
 const prepare = async (db: PGlite) => {
   await db.exec('create table if not exists _local_migrations (name text primary key)')
@@ -106,6 +183,7 @@ const prepare = async (db: PGlite) => {
      on conflict do nothing`
   )
   await seedDemos(db)
+  await seedWall(db)
   return db
 }
 

@@ -16,13 +16,13 @@ export default function BottomNav() {
   const pathname = usePathname()
   const { unread } = useRealtime()
 
-  // El chat ocupa toda la pantalla
-  if (pathname.startsWith('/matches/')) return null
+  // El chat y el composer de fotos ocupan toda la pantalla
+  if (pathname.startsWith('/matches/') || pathname === '/photos/new') return null
 
   return (
     <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
       {ITEMS.map(({ href, label, Icon }) => {
-        const active = pathname === href
+        const active = pathname === href || (href === '/photos' && pathname.startsWith('/photos/'))
         const badge = href === '/matches' && unread > 0 ? unread : 0
         return (
           <Link

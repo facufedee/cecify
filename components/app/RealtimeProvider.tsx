@@ -10,6 +10,7 @@ export const REALTIME_EVENTS = {
   message: 'cecify:message',
   typing: 'cecify:typing',
   match: 'cecify:match',
+  photoLike: 'cecify:photo-like',
 } as const
 
 type Realtime = {
@@ -29,13 +30,13 @@ export const useRealtime = () => useContext(RealtimeContext)
 const UNREAD_POLL_CONNECTED_MS = 60_000
 const UNREAD_POLL_FALLBACK_MS = 8_000
 
-type MatchToast = { conversationId: string | null; name: string }
+type Toast = { title: string; hint: string; href: string }
 
 export default function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [connected, setConnected] = useState(false)
   const [unread, setUnread] = useState(0)
-  const [toast, setToast] = useState<MatchToast | null>(null)
+  const [toast, setToast] = useState<Toast | null>(null)
 
   const refreshUnread = useCallback(async () => {
     try {
@@ -59,11 +60,22 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       emit(REALTIME_EVENTS.message, data)
       void refreshUnread()
     }
+    const showToast = (t: Toast) => {
+      setToast(t)
+      setTimeout(() => setToast(null), 6000)
+    }
     const onTyping = (data: unknown) => emit(REALTIME_EVENTS.typing, data)
     const onMatch = (data: { conversationId: string | null; name: string }) => {
       emit(REALTIME_EVENTS.match, data)
-      setToast({ conversationId: data.conversationId, name: data.name })
-      setTimeout(() => setToast(null), 6000)
+      showToast({
+        title: `¡Nuevo match con ${data.name}!`,
+        hint: 'Tocá para escribirle',
+        href: data.conversationId ? `/matches/${data.conversationId}` : '/matches',
+      })
+    }
+    const onPhotoLike = (data: { name: string }) => {
+      emit(REALTIME_EVENTS.photoLike, data)
+      showToast({ title: `A ${data.name} le gustó tu foto`, hint: 'Ver el muro', href: '/photos' })
     }
 
     socket.on('ready', onReady)
@@ -72,6 +84,7 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
     socket.on('message:new', onMessage)
     socket.on('user:typing', onTyping)
     socket.on('match:created', onMatch)
+    socket.on('photo:liked', onPhotoLike)
 
     return () => {
       socket.off('ready', onReady)
@@ -80,6 +93,7 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       socket.off('message:new', onMessage)
       socket.off('user:typing', onTyping)
       socket.off('match:created', onMatch)
+      socket.off('photo:liked', onPhotoLike)
       disconnectSocket()
     }
   }, [refreshUnread])
@@ -103,12 +117,12 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
         <button
           type="button"
           onClick={() => {
-            router.push(toast.conversationId ? `/matches/${toast.conversationId}` : '/matches')
+            router.push(toast.href)
             setToast(null)
           }}
           className="absolute inset-x-4 top-4 z-40 rounded-2xl bg-brand px-4 py-3 text-left text-sm font-medium text-white shadow-lg"
         >
-          ¡Nuevo match con {toast.name}! <span className="font-normal text-white/80">Tocá para escribirle</span>
+          {toast.title} <span className="font-normal text-white/80">{toast.hint}</span>
         </button>
       )}
     </RealtimeContext.Provider>

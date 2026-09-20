@@ -21,6 +21,14 @@ body {
 }
 
 @layer utilities {
+  /* Carruseles horizontales sin barra visible (como en el resto de las apps moviles) */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .text-balance {
     text-wrap: balance;
   }

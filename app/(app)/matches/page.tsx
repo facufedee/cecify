@@ -89,7 +89,7 @@ export default function MatchesPage() {
       {fresh.length > 0 && (
         <section className="pb-2">
           <h2 className="px-6 pb-2 text-sm font-semibold text-neutral-500">Nuevos matches</h2>
-          <ul className="flex gap-4 overflow-x-auto px-6 pb-2">
+          <ul className="flex gap-4 no-scrollbar overflow-x-auto px-6 pb-2">
             {fresh.map((c) => (
               <li key={c.id} className="shrink-0">
                 <Link href={`/matches/${c.id}`} className="flex w-16 flex-col items-center gap-1.5">

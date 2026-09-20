@@ -8,7 +8,20 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Pila tipografica del sistema, la misma que usa Instagram en la web
+        ig: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+      },
       colors: {
+        // Paleta del muro (estilo Instagram) para que resulte familiar
+        ig: {
+          text: '#262626',
+          muted: '#737373',
+          border: '#dbdbdb',
+          soft: '#efefef',
+          link: '#0095f6',
+          like: '#ff3040',
+        },
         background: "var(--background)",
         foreground: "var(--foreground)",
         brand: {
