@@ -27,7 +27,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 | 14 | Baja | README genérico de Next; la guía inicial quedó desactualizada (Next 14, JWT en localStorage) | `README.md` |
 
 **Resueltos en la Fase 0:** #1, #2, #6, #7, #9, #11, #12, #13, #14. **Parcial:** #8 (`UUID_RE` ya es compartido; el refactor de `lib/db.ts` sigue en 2.5).
-**Resueltos en la Fase 1:** #4 (editar perfil), #5 (bloquear/reportar/deshacer match). **Pendientes:** #3 (admin/moderación; los reportes ya se guardan, falta el panel para verlos), #10 (renovar sesión).
+**Resueltos en la Fase 1:** #3 (panel de administración y moderación), #4 (editar perfil), #5 (bloquear/reportar/deshacer match). **Pendientes:** #10 (renovar sesión).
 
 ## Fases
 
@@ -43,7 +43,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 - [x] 1.2 Bloquear, reportar y deshacer match
 - [x] 1.2b Roles y modos: `guest` / `admin` / `superadmin`; cada invitado elige si quiere conocer gente o solo compartir momentos, qué busca (conocer a alguien / pareja de baile) y de parte de quién viene (Cecilia / Lucas / de los dos)
 - [ ] 1.3 Entrar con un enlace/QR (`/login?email=…&code=…`) y tarjetas imprimibles con QR
-- [ ] 1.4 Panel de administración `/admin`: lista de invitados (alta, CSV, códigos), moderación (borrar fotos, comentarios e historias), reportes, métricas del evento
+- [x] 1.4 Panel de administración `/admin`: métricas del evento, reportes (con copia de lo reportado), lista de invitados (alta, CSV, códigos, roles, eliminar), moderación (borrar fotos, comentarios e historias) y registro de acciones
 
 ### Fase 2 — Pulido
 - [ ] 2.1 Chat: cargar mensajes anteriores y "visto"
@@ -62,6 +62,8 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 ## Decisiones que voy a tomar por defecto (avisá si preferís otra)
 - **Admin:** es un usuario con `role = 'admin'` o `'superadmin'` (no una contraseña compartida). Localmente `dev@` es superadmin y `demo2` admin.
 - **Roles:** `guest` (invitado), `admin` (modera, carga invitados, ve reportes) y `superadmin` (lo mismo + nombrar/quitar admins; los novios). Siempre tiene que quedar un superadmin. El rol se lee de la base en cada pedido, no del token.
+- **Panel:** admin y superadmin ven todo lo mismo, salvo dos cosas que son solo del superadmin: cambiar roles y leer la copia de una conversación reportada (es lo más privado que se guarda). Un admin no se puede eliminar como invitado: primero se le quita el rol.
+- **Eliminar un invitado** borra su cuenta y todo lo suyo (perfil, fotos, comentarios, historias, matches y chats). La sesión que ya tenía abierta deja de servir en cuanto cualquier pedido no encuentra su usuario. Los archivos de las fotos quedan huérfanos en el storage hasta la 3.3.
 - **Modo "solo compartir momentos":** el perfil no aparece en Descubrir, no puede dar likes ni recibir matches nuevos y no ve las pestañas Descubrir/Matches (si ya tenía matches, la pestaña Matches se queda). Muro e historias funcionan igual. Se puede cambiar cuando quiera desde Editar perfil.
 - **Bloqueo:** bloquear oculta a la persona en Descubrir, el muro y el chat, y deshace el match. Es unilateral y silencioso.
 - **Reportes:** los ve el admin en el panel; no se avisa al reportado.

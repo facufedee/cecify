@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, LogOut, MessageCircle, MoreHorizontal } from 'lucide-react'
+import { useMe } from '@/components/app/MeProvider'
 import ActionSheet from '@/components/wall/ActionSheet'
 import { useSafety } from '@/components/safety/useSafety'
 import PostCard from '@/components/wall/PostCard'
 import StoryRing from '@/components/wall/StoryRing'
 import { usePostActions } from '@/components/wall/usePostActions'
 import { authFetch, clearToken, getSessionUserId } from '@/lib/client-auth'
+import { isAdminRole } from '@/lib/roles'
 import { disconnectSocket } from '@/lib/socket'
 import type { WallPhoto } from '@/lib/db'
 
@@ -19,6 +21,7 @@ type Author = { name: string; photo: string; bio: string }
 // Perfil con grilla de fotos (estilo Instagram). Sin `userId` muestra el perfil propio.
 export default function ProfileView({ userId }: { userId?: string }) {
   const router = useRouter()
+  const { me } = useMe()
   const [photos, setPhotos] = useState<WallPhoto[]>([])
   const [author, setAuthor] = useState<Author | null>(null)
   const [isMe, setIsMe] = useState(false)
@@ -137,6 +140,11 @@ export default function ProfileView({ userId }: { userId?: string }) {
                 Nueva publicación
               </Link>
             </div>
+          )}
+          {isMe && isAdminRole(me?.role) && (
+            <Link href="/admin" className="mt-2 block rounded-lg bg-brand-soft py-1.5 text-center text-sm font-semibold text-brand-dark">
+              Panel de administración
+            </Link>
           )}
         </section>
 

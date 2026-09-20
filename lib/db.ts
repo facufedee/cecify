@@ -400,7 +400,7 @@ const conversationIdForMatch = async (matchId: string) => {
 
 // Llama una funcion SQL (supabase.rpc o, en local, select con argumentos con nombre).
 // `fn` y las claves de `args` son constantes internas, nunca input del usuario.
-const callFn = async <T>(fn: string, args: Record<string, unknown>): Promise<T[]> => {
+export const callFn = async <T>(fn: string, args: Record<string, unknown>): Promise<T[]> => {
   if (useLocal) {
     const db = await localDb()
     const keys = Object.keys(args)
@@ -413,7 +413,7 @@ const callFn = async <T>(fn: string, args: Record<string, unknown>): Promise<T[]
   return (data ?? []) as T[]
 }
 
-const iso = (v: string | Date) => new Date(v).toISOString()
+export const iso = (v: string | Date) => new Date(v).toISOString()
 
 export type Conversation = {
   id: string
