@@ -14,12 +14,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Users (Core)
+-- Guests (lista RSVP: la carga el admin; el login valida email + codigo contra esta tabla)
+-- email siempre en minusculas, access_code siempre en mayusculas
+CREATE TABLE guests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL CHECK (email = LOWER(email)),
+  access_code VARCHAR(50) UNIQUE NOT NULL CHECK (access_code = UPPER(access_code)),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Users (Core) - se crea en el primer login exitoso de un guest
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL CHECK (email = LOWER(email)),
   email_verified BOOLEAN DEFAULT false,
-  access_code VARCHAR(50) UNIQUE NOT NULL,
   role user_role DEFAULT 'guest',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -142,6 +151,7 @@ CREATE TRIGGER trg_profiles_updated_at
   BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- RLS: activado en todas las tablas, sin policies
+ALTER TABLE guests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE swipes ENABLE ROW LEVEL SECURITY;
