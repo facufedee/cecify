@@ -65,6 +65,8 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
           src={photo.photoUrl}
           alt={photo.caption ?? `Foto de ${photo.authorName}`}
           draggable={false}
+          loading="lazy"
+          decoding="async"
           className="max-h-[36rem] w-full object-cover"
         />
         <AnimatePresence>

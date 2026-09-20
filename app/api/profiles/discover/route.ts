@@ -2,8 +2,7 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { discoverProfiles, getUserContext } from '@/lib/db'
 import type { DiscoverProfile } from '@/lib/profile-schema'
 import { rateLimit } from '@/lib/rate-limit'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from '@/lib/validators'
 
 // Perfiles todavia no swipeados (los excluye el servidor). ?exclude=id1,id2 evita repetir
 // los que el cliente ya tiene en mano pero aun no swipeo.

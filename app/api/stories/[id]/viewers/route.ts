@@ -1,7 +1,6 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { listStoryViewers } from '@/lib/db'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from '@/lib/validators'
 
 // Quien vio la historia. Solo responde con datos si la historia es del usuario que pregunta.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

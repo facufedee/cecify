@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cecify
 
-## Getting Started
+App web (PWA) para la boda de Lucas y Cecilia: los invitados entran con un código, arman su perfil,
+se conocen con un swipe estilo cita, chatean cuando hay match y comparten fotos e historias.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind 3 · Supabase (Postgres) ·
+Socket.io (repo aparte: `../cecify-socket`) · Vitest.
+
+## Empezar (modo local, sin Supabase)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Con `LOCAL_DB=1` en `.env.local` la app usa un Postgres embebido (PGlite) que aplica las mismas
+migraciones de `supabase/migrations/` y guarda los datos en `.local-db/` (se puede borrar para empezar de cero).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Cuentas de prueba (se crean solas):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Email | Código | Notas |
+|-------|--------|-------|
+| `dev@cecify.local` | `DEV1-2345` | tu cuenta de prueba |
+| `demo1@demo.cecify.local` … `demo6@…` | `DEMO0001` … `DEMO0006` | Lucía, Mateo, Camila, Joaquín, Valentina, Tomás |
 
-## Learn More
+En desarrollo los invitados demo con número impar (Lucía, Camila, Valentina) te dan like de vuelta, así se ve la pantalla
+de match, y todos responden solos a los mensajes. Hay fotos e historias de ejemplo.
 
-To learn more about Next.js, take a look at the following resources:
+Para tiempo real (mensajes al instante, "escribiendo…", avisos) hay que levantar también el servidor de sockets:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd ../cecify-socket && npm run dev     # puerto 3001
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Sin él todo funciona igual, con actualización por polling (unos segundos de demora).
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Comando | Qué hace |
+|---------|----------|
+| `npm run dev` | servidor de desarrollo |
+| `npm run build` / `npm start` | build y servidor de producción |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | chequeo de tipos |
+| `npm test` | tests (migraciones con PGlite, validadores, utilidades) |
+| `npm run import:guests -- invitados.csv` | carga la lista de invitados en Supabase y genera los códigos |
+| `node scripts/generate-icons.mjs` | regenera los iconos de la PWA a partir de la hoja de logos |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Variables de entorno
+
+Ver `.env.example`. Las importantes:
+
+| Variable | Para qué |
+|----------|----------|
+| `LOCAL_DB=1` | usa la base local en vez de Supabase (solo desarrollo; se ignora en producción) |
+| `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase (solo servidor) |
+| `JWT_SECRET` | firma de sesiones; **tiene que ser el mismo** en la app y en `cecify-socket` |
+| `NEXT_PUBLIC_SOCKET_URL` | URL del servidor de sockets |
+| `SOCKET_SECRET` | clave compartida app ↔ servidor de sockets (también en `cecify-socket`) |
+
+## Cómo está armado
+
+```
+app/
+  (app)/          pantallas con sesión: discover, matches (+chat), photos (muro), stories, profile
+  api/            API routes (auth, profiles, swipes, matches, messages, photos, stories)
+  login, onboarding
+components/       wall/ (muro), stories/, discover/, onboarding/, app/ (navegación, tiempo real)
+lib/              db.ts (acceso a datos), db-local.ts (base local), auth, rate-limit, storage, realtime
+supabase/migrations/   el esquema y la lógica en SQL (fuente de verdad)
+tests/            tests de base de datos (PGlite) y unitarios
+scripts/          importar invitados, generar iconos
+```
+
+Decisiones de diseño que conviene conocer:
+
+- **Todo el acceso a datos pasa por el servidor** con la service role. Las tablas tienen RLS activado *sin policies*: la clave
+  pública de Supabase no puede leer ni escribir nada.
+- **La lógica sensible vive en funciones SQL** (`record_swipe`, `send_message`, `toggle_photo_like`, …): atómicas, probadas con
+  PGlite y con el acceso público revocado. Un test falla si alguien agrega una función sin ese `REVOKE`.
+- **Los contactos solo se revelan tras un match** y nunca salen de la API de Descubrir.
+- **Tiempo real:** los mensajes se guardan por la API; el servidor de sockets solo entrega avisos y verifica el JWT. Si está
+  caído, la app sigue funcionando por polling.
+- **Las fotos se reprocesan en el servidor** (se elimina el EXIF/GPS) y una URL de foto solo se acepta si la subió el propio usuario.
+
+## Migraciones
+
+Están en `supabase/migrations/` y se aplican en orden. En local se aplican solas. Con Supabase: `npx supabase db push`
+(necesita conexión al puerto 5432; en redes que lo bloquean se pueden pegar en el SQL Editor, en orden).
+
+## Plan
+
+Ver [`PLAN.md`](PLAN.md): auditoría, fases y lo que sigue.

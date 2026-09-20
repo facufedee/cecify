@@ -1,7 +1,6 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getMessages, listConversations } from '@/lib/db'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from '@/lib/validators'
 
 const parseDate = (v: string | null) => {
   if (!v) return undefined

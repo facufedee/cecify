@@ -2,8 +2,8 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { createStory, listStories, listStoryRings } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { isOwnPhotoUrl } from '@/lib/storage'
+import { UUID_RE } from '@/lib/validators'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CAPTION_MAX = 150
 
 // Sin parametros: los anillos (un autor por renglon). Con ?author=<id>: sus historias vigentes.

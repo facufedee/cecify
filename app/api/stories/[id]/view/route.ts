@@ -1,8 +1,7 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { markStoryViewed } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from '@/lib/validators'
 
 // Registra que el usuario vio la historia (idempotente; ignora las propias y las vencidas)
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

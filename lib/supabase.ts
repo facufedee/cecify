@@ -1,22 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
-
-// Para server-side (API routes) - nunca importar desde componentes cliente
+// Cliente de Supabase con la service role. SOLO para el servidor (API routes): la app no usa
+// Supabase desde el navegador y las tablas tienen RLS sin policies, asi que la clave publica no
+// puede leer ni escribir nada. Nunca importar este modulo desde un componente cliente.
+//
+// Sin efectos al importar: falla recien al usarlo, con un mensaje que dice que falta.
 export const supabaseServer = () => {
-  return createClient(
-    supabaseUrl,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) {
+    throw new Error('Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY (o usá LOCAL_DB=1 en desarrollo)')
+  }
+
+  return createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }

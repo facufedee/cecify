@@ -2,8 +2,8 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { createPhoto, getAuthor, listPhotos } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { isOwnPhotoUrl } from '@/lib/storage'
+import { UUID_RE } from '@/lib/validators'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CAPTION_MAX = 300
 
 // Feed (mas nuevas primero). ?before=<iso> pagina; ?author=<userId> arma la grilla de un invitado.

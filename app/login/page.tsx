@@ -46,7 +46,9 @@ export default function LoginPage() {
         className="w-full max-w-sm space-y-5 rounded-2xl bg-white p-8 text-neutral-800 shadow-sm"
       >
         <div className="text-center">
-          <h1 className="text-3xl font-semibold text-[#4A7C59]">Cecify</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/logo-mark.png" alt="" className="mx-auto h-20 w-auto" />
+          <h1 className="mt-3 text-2xl font-semibold text-[#4A7C59]">Cecify</h1>
           <p className="mt-1 text-sm text-neutral-500">Lucas &amp; Cecilia</p>
         </div>
 

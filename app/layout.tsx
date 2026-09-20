@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import RegisterServiceWorker from '@/components/app/RegisterServiceWorker'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Cecify - Lucas & Cecilia',
-  description: 'Matching de invitados + fotos de boda',
+  description: 'Conocé a los invitados, chateá y compartí las fotos de la boda',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -14,7 +15,11 @@ export const metadata: Metadata = {
     title: 'Cecify',
   },
   icons: {
-    icon: '/icons/favicon.ico',
+    icon: [
+      { url: '/icons/favicon.ico', sizes: 'any' },
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/apple-touch-icon.png',
   },
 }
@@ -31,15 +36,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={inter.className}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').catch(() => {})
-              }
-            `,
-          }}
-        />
+        <RegisterServiceWorker />
         {children}
       </body>
     </html>

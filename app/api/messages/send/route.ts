@@ -4,8 +4,8 @@ import { getUserContext, sendMessage } from '@/lib/db'
 import { maybeDemoReply } from '@/lib/dev-demo'
 import { emitTo } from '@/lib/realtime'
 import { rateLimit } from '@/lib/rate-limit'
+import { UUID_RE } from '@/lib/validators'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_LENGTH = 1000
 
 export async function POST(req: Request) {

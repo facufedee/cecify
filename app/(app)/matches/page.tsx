@@ -118,7 +118,7 @@ export default function MatchesPage() {
                   className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-cream/60"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.other.photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+                  <img loading="lazy" decoding="async" src={c.other.photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate font-semibold">{c.other.name}</span>

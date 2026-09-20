@@ -155,7 +155,7 @@ export default function ProfileView({ userId }: { userId?: string }) {
                   className="group relative block aspect-square w-full overflow-hidden bg-ig-soft"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.photoUrl} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" decoding="async" src={p.photoUrl} alt="" className="h-full w-full object-cover" />
                   <span className="absolute inset-0 flex items-center justify-center gap-4 bg-black/35 text-sm font-bold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                     <span className="flex items-center gap-1">
                       <Heart size={18} fill="currentColor" strokeWidth={0} /> {p.likesCount}

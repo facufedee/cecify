@@ -1,8 +1,8 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { addComment, listComments } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
+import { UUID_RE } from '@/lib/validators'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const COMMENT_MAX = 300
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

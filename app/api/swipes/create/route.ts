@@ -3,8 +3,7 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getUserContext, recordSwipe } from '@/lib/db'
 import { emitTo } from '@/lib/realtime'
 import { rateLimit } from '@/lib/rate-limit'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from '@/lib/validators'
 
 export async function POST(req: Request) {
   const auth = getAuth(req)
