@@ -6,7 +6,7 @@ import { Lock, Trash2 } from 'lucide-react'
 import { Avatar, Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, errorMessage } from '@/lib/admin-client'
 import { REASON_LABELS, STATUS_LABELS, TYPE_LABELS } from '@/lib/admin-labels'
-import type { AdminReport, ReportStatus } from '@/lib/db-admin'
+import type { AdminReport, ReportStatus } from '@/lib/db/admin'
 import { formatShortAgo } from '@/lib/format'
 import { ROLE_LABELS } from '@/lib/roles'
 

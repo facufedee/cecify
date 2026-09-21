@@ -1,6 +1,6 @@
 // Acceso a datos del panel de administracion. Cada funcion SQL vuelve a comprobar que `actorId`
 // sea admin o superadmin: si no lo es, no devuelve nada ni cambia nada.
-import { callFn, iso } from '@/lib/db'
+import { callFn, iso } from '@/lib/db/core'
 import type { Side } from '@/lib/profile-schema'
 import type { Role } from '@/lib/roles'
 import { clearSessionCache, forgetSession } from '@/lib/session'

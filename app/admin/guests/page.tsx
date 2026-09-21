@@ -6,7 +6,7 @@ import { Copy, Download, Loader2, Mail, Plus, Search, Upload } from 'lucide-reac
 import { useMe } from '@/components/app/MeProvider'
 import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Modal, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
-import type { AdminGuest } from '@/lib/db-admin'
+import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
 import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'

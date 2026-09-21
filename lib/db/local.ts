@@ -10,7 +10,7 @@ const globalForDb = globalThis as unknown as { __cecifyLocalDb?: Promise<PGlite>
 const FIRST_MIGRATION = '20260920160000_initial_schema.sql'
 
 // Invitados demo para ver Discover. Los impares (demo1, demo3, demo5) le dan like de vuelta
-// a quien les da like (ver recordSwipe en lib/db.ts) para poder probar el flujo de match.
+// a quien les da like (ver demoLikeBack en lib/db/dev.ts) para poder probar el flujo de match.
 const DEMOS = [
   { name: 'Lucía', age: 28, bio: 'Bailo hasta que apagan la música.', interests: ['Baile', 'Música', 'Viajes', 'Vino'], colors: ['#4A7C59', '#D9C9A0'] },
   { name: 'Mateo', age: 32, bio: 'Fotógrafo aficionado, cazador de atardeceres.', interests: ['Fotografía', 'Naturaleza', 'Viajes'], colors: ['#6C8FA3', '#F5EFE0'] },

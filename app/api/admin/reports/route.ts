@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminListReports, type ReportStatus } from '@/lib/db-admin'
+import { adminListReports, type ReportStatus } from '@/lib/db/admin'
 
 const STATUSES: ReportStatus[] = ['open', 'reviewed', 'dismissed']
 

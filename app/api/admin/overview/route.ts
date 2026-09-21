@@ -1,5 +1,5 @@
 import { adminOnly, serverError } from '@/lib/admin-api'
-import { adminRecentActions, adminStats } from '@/lib/db-admin'
+import { adminRecentActions, adminStats } from '@/lib/db/admin'
 
 // Metricas del evento + ultimas acciones de administracion
 export async function GET(req: Request) {

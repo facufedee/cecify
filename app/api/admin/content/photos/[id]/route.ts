@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminDeletePhoto, adminListComments } from '@/lib/db-admin'
+import { adminDeletePhoto, adminListComments } from '@/lib/db/admin'
 import { isUuid } from '@/lib/validators'
 
 // Comentarios de una foto

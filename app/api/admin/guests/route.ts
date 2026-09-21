@@ -1,6 +1,6 @@
 import { adminOnly, badRequest, isUniqueViolation, serverError } from '@/lib/admin-api'
 import { addGuest, importGuests } from '@/lib/admin-guests'
-import { adminListGuests } from '@/lib/db-admin'
+import { adminListGuests } from '@/lib/db/admin'
 import { NAME_MAX, parseGuestsCsv, parseSide } from '@/lib/guests'
 import { EMAIL_RE } from '@/lib/validators'
 

@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminDeleteComment } from '@/lib/db-admin'
+import { adminDeleteComment } from '@/lib/db/admin'
 import { isUuid } from '@/lib/validators'
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {

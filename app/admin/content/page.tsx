@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Eye, Heart, MessageCircle, Trash2 } from 'lucide-react'
 import { btn, ConfirmDialog, EmptyState, ErrorNote, Modal, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, errorMessage } from '@/lib/admin-client'
-import type { AdminComment, AdminPhoto, AdminStory } from '@/lib/db-admin'
+import type { AdminComment, AdminPhoto, AdminStory } from '@/lib/db/admin'
 import { formatShortAgo } from '@/lib/format'
 
 const PAGE = 24

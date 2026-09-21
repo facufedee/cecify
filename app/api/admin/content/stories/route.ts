@@ -1,5 +1,5 @@
 import { adminOnly, serverError } from '@/lib/admin-api'
-import { adminListStories } from '@/lib/db-admin'
+import { adminListStories } from '@/lib/db/admin'
 
 // Historias activas (las de las ultimas 24 h)
 export async function GET(req: Request) {

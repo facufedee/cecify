@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminRevokeSessions } from '@/lib/db-admin'
+import { adminRevokeSessions } from '@/lib/db/admin'
 import { isUuid } from '@/lib/validators'
 
 // Cierra las sesiones abiertas de un invitado (en todos sus dispositivos). Puede volver a entrar con su codigo.

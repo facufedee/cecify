@@ -1,6 +1,6 @@
 // Alta e importacion de invitados con generacion de codigos (un codigo repetido se reintenta).
 import { isUniqueViolation } from '@/lib/admin-api'
-import { adminUpdateGuest, adminUpsertGuest } from '@/lib/db-admin'
+import { adminUpdateGuest, adminUpsertGuest } from '@/lib/db/admin'
 import { generateCode, type CsvGuest } from '@/lib/guests'
 import type { Side } from '@/lib/profile-schema'
 

@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminSetReportStatus } from '@/lib/db-admin'
+import { adminSetReportStatus } from '@/lib/db/admin'
 import { isUuid } from '@/lib/validators'
 
 // Marca un reporte como revisado, descartado o vuelve a abrirlo

@@ -1,5 +1,5 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
-import { adminListPhotos } from '@/lib/db-admin'
+import { adminListPhotos } from '@/lib/db/admin'
 
 // Todas las fotos del muro (sin filtros de bloqueo). ?before=<fecha ISO> para paginar.
 export async function GET(req: Request) {

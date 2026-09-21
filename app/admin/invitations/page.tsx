@@ -5,7 +5,7 @@ import { Download, Printer } from 'lucide-react'
 import Qr from '@/components/admin/Qr'
 import { btn, Card, EmptyState, ErrorNote, inputClass, Spinner } from '@/components/admin/ui'
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
-import type { AdminGuest } from '@/lib/db-admin'
+import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
 import { inviteUrl } from '@/lib/invite'
 

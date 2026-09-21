@@ -71,7 +71,7 @@ app/
   api/            API routes (auth, profiles, swipes, matches, messages, photos, stories)
   login, onboarding
 components/       wall/ (muro), stories/, discover/, onboarding/, app/ (navegación, tiempo real)
-lib/              db.ts (acceso a datos), db-local.ts (base local), auth, rate-limit, storage, realtime
+lib/              db/ (acceso a datos por dominio: users, profiles, discover, chat, wall, stories, safety, push, admin; core.ts es la única puerta; local.ts es la base local), auth, rate-limit, storage, realtime
 supabase/migrations/   el esquema y la lógica en SQL (fuente de verdad)
 tests/            tests de base de datos (PGlite) y unitarios
 scripts/          importar invitados, generar iconos

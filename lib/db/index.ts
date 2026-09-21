@@ -1,0 +1,12 @@
+// Acceso a datos, por dominio. Todo entra por funciones SQL (ver core.ts). El panel de administracion
+// vive aparte en '@/lib/db/admin'.
+export { callFn, iso } from '@/lib/db/core'
+export * from '@/lib/db/users'
+export * from '@/lib/db/profiles'
+export * from '@/lib/db/discover'
+export * from '@/lib/db/chat'
+export * from '@/lib/db/wall'
+export * from '@/lib/db/stories'
+export * from '@/lib/db/safety'
+export * from '@/lib/db/push'
+export * from '@/lib/db/dev'

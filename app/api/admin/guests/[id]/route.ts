@@ -1,6 +1,6 @@
 import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
 import { regenerateCode } from '@/lib/admin-guests'
-import { adminDeleteGuest, adminUpdateGuest } from '@/lib/db-admin'
+import { adminDeleteGuest, adminUpdateGuest } from '@/lib/db/admin'
 import { NAME_MAX, parseSide } from '@/lib/guests'
 import { isUuid } from '@/lib/validators'
 

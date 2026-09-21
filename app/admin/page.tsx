@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, ErrorNote, Spinner } from '@/components/admin/ui'
 import { adminJson, errorMessage } from '@/lib/admin-client'
 import { describeAction } from '@/lib/admin-labels'
-import type { AdminAction, AdminStats } from '@/lib/db-admin'
+import type { AdminAction, AdminStats } from '@/lib/db/admin'
 import { formatShortAgo } from '@/lib/format'
 import { COUPLE } from '@/lib/profile-schema'
 
