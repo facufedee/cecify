@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Loader2, X } from 'lucide-react'
 import StoryRing from '@/components/wall/StoryRing'
-import { authFetch, compressImage } from '@/lib/client-auth'
+import PhotoEditor from '@/components/photo/PhotoEditor'
+import { authFetch } from '@/lib/client-auth'
+import { POST_ASPECTS, uploadPhoto } from '@/lib/client-photo'
 
 const CAPTION_MAX = 300
 
@@ -24,17 +26,22 @@ export default function NewPostPage() {
       .catch(() => {})
   }, [])
 
-  const onFile = async (file: File) => {
+  const [editing, setEditing] = useState<File | null>(null) // foto que se esta encuadrando
+  const [sourceFile, setSourceFile] = useState<File | null>(null) // la original, para volver a editarla
+
+  // Al elegir una foto se abre el editor; al terminar se sube ya recortada
+  const onFile = (file: File) => {
     setError(null)
+    setSourceFile(file)
+    setEditing(file)
+  }
+
+  const onEdited = async (blob: Blob) => {
+    setEditing(null)
     setUploading(true)
     try {
-      const blob = await compressImage(file)
-      const form = new FormData()
-      form.append('file', blob, 'photo.jpg')
-      const res = await authFetch('/api/profiles/photo', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'No se pudo subir la foto')
-      setUploaded({ url: data.url, preview: URL.createObjectURL(blob) })
+      const url = await uploadPhoto(blob)
+      setUploaded({ url, preview: URL.createObjectURL(blob) })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto')
     } finally {
@@ -82,7 +89,7 @@ export default function NewPostPage() {
         <label className="relative block cursor-pointer border-b border-ig-soft bg-ig-soft">
           {uploaded ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={uploaded.preview} alt="Vista previa" className="aspect-[4/5] w-full object-cover" />
+            <img src={uploaded.preview} alt="Vista previa" className="max-h-[36rem] w-full object-contain" />
           ) : (
             <span className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-ig-muted">
               {uploading ? (
@@ -122,6 +129,19 @@ export default function NewPostPage() {
           />
         </label>
 
+        {uploaded && sourceFile && (
+          <div className="px-4 pt-3">
+            <button
+              type="button"
+              onClick={() => setEditing(sourceFile)}
+              disabled={uploading}
+              className="rounded-lg bg-ig-soft px-4 py-1.5 text-sm font-semibold disabled:opacity-50"
+            >
+              Editar encuadre
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-3 px-4 py-4">
           <StoryRing src={myPhoto} size={36} ring={false} />
           <div className="min-w-0 flex-1">
@@ -146,6 +166,16 @@ export default function NewPostPage() {
           </p>
         )}
       </div>
+      {editing && (
+        <PhotoEditor
+          file={editing}
+          title="Encuadrá tu foto"
+          aspects={POST_ASPECTS}
+          minLongSide={700}
+          onCancel={() => setEditing(null)}
+          onDone={onEdited}
+        />
+      )}
     </div>
   )
 }

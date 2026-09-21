@@ -67,7 +67,7 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
           draggable={false}
           loading="lazy"
           decoding="async"
-          className="max-h-[36rem] w-full object-cover"
+          className="max-h-[36rem] w-full object-contain"
         />
         <AnimatePresence>
           {burst > 0 && (

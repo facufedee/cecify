@@ -10,7 +10,9 @@ import PushToggle from '@/components/app/PushToggle'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
 import ModeFields from '@/components/profile/ModeFields'
 import ActionSheet from '@/components/wall/ActionSheet'
-import { authFetch, clearToken, compressImage } from '@/lib/client-auth'
+import PhotoEditor from '@/components/photo/PhotoEditor'
+import { authFetch, clearToken } from '@/lib/client-auth'
+import { PROFILE_ASPECTS, uploadPhoto } from '@/lib/client-photo'
 import { disablePushQuietly } from '@/lib/push-client'
 import { disconnectSocket } from '@/lib/socket'
 import {
@@ -47,6 +49,7 @@ export default function EditProfilePage() {
   // indice 0 = principal, 1..3 = adicionales; cada uno es la URL ya subida (o null)
   const [photos, setPhotos] = useState<(string | null)[]>(Array(1 + MAX_EXTRA_PHOTOS).fill(null))
   const [uploading, setUploading] = useState<number | null>(null)
+  const [editing, setEditing] = useState<{ index: number; file: File } | null>(null) // foto que se esta encuadrando
   const [interests, setInterests] = useState<string[]>([])
   const [instagram, setInstagram] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -78,17 +81,19 @@ export default function EditProfilePage() {
     }
   }, [router])
 
-  const onPhoto = async (index: number, file: File) => {
+  const onPhoto = (index: number, file: File) => {
     setError(null)
+    setEditing({ index, file })
+  }
+
+  const onEdited = async (blob: Blob) => {
+    if (!editing) return
+    const { index } = editing
+    setEditing(null)
     setUploading(index)
     try {
-      const blob = await compressImage(file)
-      const form = new FormData()
-      form.append('file', blob, 'photo.jpg')
-      const res = await authFetch('/api/profiles/photo', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'No se pudo subir la foto')
-      setPhotos((prev) => prev.map((p, i) => (i === index ? data.url : p)))
+      const url = await uploadPhoto(blob)
+      setPhotos((prev) => prev.map((p, i) => (i === index ? url : p)))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto')
     } finally {
@@ -356,6 +361,17 @@ export default function EditProfilePage() {
           </p>
         )}
       </div>
+
+      {editing && (
+        <PhotoEditor
+          file={editing.file}
+          title="Encuadrá tu foto"
+          aspects={PROFILE_ASPECTS}
+          minLongSide={500}
+          onCancel={() => setEditing(null)}
+          onDone={onEdited}
+        />
+      )}
 
       <AnimatePresence>
         {confirmLogoutAll && (

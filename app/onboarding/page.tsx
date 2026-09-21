@@ -7,7 +7,9 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import StepIndicator from '@/components/onboarding/StepIndicator'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
 import ModeFields from '@/components/profile/ModeFields'
-import { authFetch, compressImage, getToken } from '@/lib/client-auth'
+import PhotoEditor from '@/components/photo/PhotoEditor'
+import { authFetch, getToken } from '@/lib/client-auth'
+import { PROFILE_ASPECTS, uploadPhoto } from '@/lib/client-photo'
 import {
   AGE_MAX,
   AGE_MIN,
@@ -52,6 +54,7 @@ export default function OnboardingPage() {
   // indice 0 = foto principal, 1..3 = adicionales
   const [photos, setPhotos] = useState<Photo[]>(Array(1 + MAX_EXTRA_PHOTOS).fill(null))
   const [uploading, setUploading] = useState<number | null>(null)
+  const [editing, setEditing] = useState<{ index: number; file: File } | null>(null) // foto que se esta encuadrando
   const [interests, setInterests] = useState<string[]>([])
   const [instagram, setInstagram] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -88,17 +91,20 @@ export default function OnboardingPage() {
     contact: interests.length > 0 && (instagram.trim() !== '' || whatsapp.trim() !== ''),
   }[stepId]
 
-  const onPhoto = async (index: number, file: File) => {
+  // Al elegir una foto se abre el editor (encuadre, zoom, giro); al terminar se sube ya recortada
+  const onPhoto = (index: number, file: File) => {
     setError(null)
+    setEditing({ index, file })
+  }
+
+  const onEdited = async (blob: Blob) => {
+    if (!editing) return
+    const { index } = editing
+    setEditing(null)
     setUploading(index)
     try {
-      const blob = await compressImage(file)
-      const form = new FormData()
-      form.append('file', blob, 'photo.jpg')
-      const res = await authFetch('/api/profiles/photo', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'No se pudo subir la foto')
-      setPhotos((prev) => prev.map((p, i) => (i === index ? { url: data.url, preview: URL.createObjectURL(blob) } : p)))
+      const url = await uploadPhoto(blob)
+      setPhotos((prev) => prev.map((p, i) => (i === index ? { url, preview: URL.createObjectURL(blob) } : p)))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto')
     } finally {
@@ -328,6 +334,17 @@ export default function OnboardingPage() {
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {editing && (
+          <PhotoEditor
+            file={editing.file}
+            title="Encuadrá tu foto"
+            aspects={PROFILE_ASPECTS}
+            minLongSide={500}
+            onCancel={() => setEditing(null)}
+            onDone={onEdited}
+          />
+        )}
 
         {error && (
           <p role="alert" className="mt-4 text-center text-sm text-red-600">

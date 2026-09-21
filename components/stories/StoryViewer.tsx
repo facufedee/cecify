@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Eye, Loader2, MoreHorizontal, X } from 'lucide-react'
 import { useDialog } from '@/components/a11y/useDialog'
+import StoryImage from '@/components/stories/StoryImage'
 import ActionSheet from '@/components/wall/ActionSheet'
 import StoryRing from '@/components/wall/StoryRing'
 import { useSafety } from '@/components/safety/useSafety'
@@ -202,14 +203,7 @@ export default function StoryViewer({
       transition={{ duration: 0.15 }}
     >
       {story && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={story.id}
-          src={story.photoUrl}
-          alt={story.caption ?? `Historia de ${author.name}`}
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <StoryImage key={story.id} src={story.photoUrl} alt={story.caption ?? `Historia de ${author.name}`} />
       )}
 
       {!story && !error && (

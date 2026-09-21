@@ -5,6 +5,10 @@ import { savePhoto } from '@/lib/storage'
 
 // El cliente ya comprime antes de subir (Vercel limita el body a ~4.5MB)
 const MAX_BYTES = 4 * 1024 * 1024
+// Mismo limite que MAX_UPLOAD de lib/photo-crop.ts (el editor ya entrega la foto dentro de esta caja)
+// Cabe una historia 9:16 de 1080x1920 sin achicarse
+const MAX_WIDTH = 1440
+const MAX_HEIGHT = 1920
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -35,7 +39,8 @@ export async function POST(req: Request) {
     // sharp decodifica de verdad: si no es una imagen real, falla (no confiamos en el mimetype)
     const jpeg = await sharp(Buffer.from(await file.arrayBuffer()))
       .rotate() // respeta la orientacion EXIF; el re-encode elimina el EXIF (incluido GPS)
-      .resize({ width: 1080, height: 1440, fit: 'inside', withoutEnlargement: true })
+      // Solo achica (para que no pesen de mas); NUNCA recorta ni agranda: el encuadre lo elige la persona en el editor
+      .resize({ width: MAX_WIDTH, height: MAX_HEIGHT, fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 80 })
       .toBuffer()
 

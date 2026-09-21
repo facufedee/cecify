@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Loader2, X } from 'lucide-react'
-import { authFetch, compressImage } from '@/lib/client-auth'
+import PhotoEditor from '@/components/photo/PhotoEditor'
+import StoryImage from '@/components/stories/StoryImage'
+import { authFetch } from '@/lib/client-auth'
+import { STORY_ASPECTS, uploadPhoto } from '@/lib/client-photo'
 
 const CAPTION_MAX = 150
 
@@ -15,17 +18,22 @@ export default function NewStoryPage() {
   const [sharing, setSharing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const onFile = async (file: File) => {
+  const [editing, setEditing] = useState<File | null>(null) // foto que se esta encuadrando
+  const [sourceFile, setSourceFile] = useState<File | null>(null) // la original, para volver a editarla
+
+  // Al elegir una foto se abre el editor; al terminar se sube ya recortada
+  const onFile = (file: File) => {
     setError(null)
+    setSourceFile(file)
+    setEditing(file)
+  }
+
+  const onEdited = async (blob: Blob) => {
+    setEditing(null)
     setUploading(true)
     try {
-      const blob = await compressImage(file)
-      const form = new FormData()
-      form.append('file', blob, 'story.jpg')
-      const res = await authFetch('/api/profiles/photo', { method: 'POST', body: form })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'No se pudo subir la foto')
-      setUploaded({ url: data.url, preview: URL.createObjectURL(blob) })
+      const url = await uploadPhoto(blob, 'story.jpg')
+      setUploaded({ url, preview: URL.createObjectURL(blob) })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo subir la foto')
     } finally {
@@ -69,8 +77,7 @@ export default function NewStoryPage() {
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-black font-ig text-white">
       {uploaded && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={uploaded.preview} alt="Vista previa de la historia" className="absolute inset-0 h-full w-full object-cover" />
+        <StoryImage src={uploaded.preview} alt="Vista previa de la historia" />
       )}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 to-transparent" />
       {uploaded && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/70 to-transparent" />}
@@ -80,10 +87,22 @@ export default function NewStoryPage() {
           <X size={28} />
         </button>
         {uploaded && (
-          <label className="cursor-pointer rounded-full bg-black/45 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm">
-            Cambiar foto
-            {picker}
-          </label>
+          <div className="flex gap-2">
+            {sourceFile && (
+              <button
+                type="button"
+                onClick={() => setEditing(sourceFile)}
+                disabled={uploading}
+                className="rounded-full bg-black/45 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm disabled:opacity-50"
+              >
+                Editar
+              </button>
+            )}
+            <label className="cursor-pointer rounded-full bg-black/45 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-sm">
+              Cambiar foto
+              {picker}
+            </label>
+          </div>
         )}
       </header>
 
@@ -135,6 +154,17 @@ export default function NewStoryPage() {
             Compartir en tu historia
           </button>
         </div>
+      )}
+
+      {editing && (
+        <PhotoEditor
+          file={editing}
+          title="Encuadrá tu historia"
+          aspects={STORY_ASPECTS}
+          minLongSide={900}
+          onCancel={() => setEditing(null)}
+          onDone={onEdited}
+        />
       )}
 
       {!uploaded && error && (

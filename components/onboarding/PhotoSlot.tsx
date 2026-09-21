@@ -14,7 +14,7 @@ export default function PhotoSlot({ preview, uploading, main = false, onFile, on
   return (
     <label
       className={`group relative flex cursor-pointer items-center justify-center overflow-hidden bg-cream ring-1 ring-cream-dark transition hover:ring-brand ${
-        main ? 'h-56 w-56 rounded-[2rem]' : 'h-24 w-24 rounded-2xl'
+        main ? 'aspect-[4/5] w-44 rounded-[1.75rem]' : 'aspect-[4/5] w-[5.25rem] rounded-2xl'
       }`}
     >
       {preview && (
