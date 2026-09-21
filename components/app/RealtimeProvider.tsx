@@ -11,6 +11,7 @@ export const REALTIME_EVENTS = {
   typing: 'cecify:typing',
   match: 'cecify:match',
   photoLike: 'cecify:photo-like',
+  read: 'cecify:read', // la otra persona leyo mis mensajes ("Visto")
 } as const
 
 type Realtime = {
@@ -65,6 +66,7 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       setTimeout(() => setToast(null), 6000)
     }
     const onTyping = (data: unknown) => emit(REALTIME_EVENTS.typing, data)
+    const onRead = (data: unknown) => emit(REALTIME_EVENTS.read, data)
     const onMatch = (data: { conversationId: string | null; name: string }) => {
       emit(REALTIME_EVENTS.match, data)
       showToast({
@@ -83,6 +85,7 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
     socket.on('connect_error', onDisconnect)
     socket.on('message:new', onMessage)
     socket.on('user:typing', onTyping)
+    socket.on('messages:read', onRead)
     socket.on('match:created', onMatch)
     socket.on('photo:liked', onPhotoLike)
 
@@ -92,6 +95,7 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       socket.off('connect_error', onDisconnect)
       socket.off('message:new', onMessage)
       socket.off('user:typing', onTyping)
+      socket.off('messages:read', onRead)
       socket.off('match:created', onMatch)
       socket.off('photo:liked', onPhotoLike)
       disconnectSocket()

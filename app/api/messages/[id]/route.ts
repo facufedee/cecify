@@ -1,6 +1,8 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
-import { getMessages, listConversations } from '@/lib/db'
+import { getMessages, getReadState, listConversations } from '@/lib/db'
 import { UUID_RE } from '@/lib/validators'
+
+const PAGE_SIZE = 50
 
 const parseDate = (v: string | null) => {
   if (!v) return undefined
@@ -25,8 +27,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const conversation = (await listConversations(auth.userId)).find((c) => c.id === id)
     if (!conversation) return Response.json({ error: 'Conversación no encontrada' }, { status: 404 })
 
-    const messages = await getMessages(auth.userId, id, { after, before, limit: 50 })
-    return Response.json({ conversation, messages })
+    const [messages, readUpTo] = await Promise.all([
+      getMessages(auth.userId, id, { after, before, limit: PAGE_SIZE }),
+      getReadState(auth.userId, id),
+    ])
+    // readUpTo: hasta cuando leyo la otra persona lo que enviaste (para el "Visto")
+    return Response.json({ conversation, messages, readUpTo, pageSize: PAGE_SIZE })
   } catch (error) {
     console.error('messages/get error:', error)
     return Response.json({ error: 'Error del servidor' }, { status: 500 })

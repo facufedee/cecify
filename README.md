@@ -86,6 +86,8 @@ Decisiones de diseño que conviene conocer:
   (`requireRole` en `lib/api-auth.ts`), no del token. El *modo* lo elige cada invitado: quien elige solo muro e historias
   (`wants_match = false`) queda fuera de Descubrir y de los matches; lo aplica SQL (`discover_profiles`, `record_swipe`), no
   solo la pantalla. Solo un superadmin cambia roles (`set_user_role`) y siempre queda al menos uno.
+- **Chat:** se paginan los mensajes hacia atrás (`?before=`) y el "Visto" sale de `chat_read_state` (hasta cuándo leyó la otra
+  persona lo que enviaste). Avisa en vivo con el evento `messages:read`, que tiene que estar en la lista permitida de `cecify-socket`.
 - **Sesiones revocables:** el JWT lleva una versión de sesión (`users.session_version`) y `getAuth` la compara con la base en
   cada pedido (caché de 10 s). Se renueva solo con `/api/auth/refresh` y se cierra en todos los dispositivos con
   `/api/auth/logout-all` o desde el panel. Toda ruta nueva tiene que usar `await getAuth(req)`.

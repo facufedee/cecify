@@ -559,9 +559,22 @@ export const sendMessage = async (
   }
 }
 
+// Marca como leido lo que le llego al usuario. `readUpTo` = fecha del ultimo mensaje marcado (null si no habia nada nuevo).
 export const markRead = async (userId: string, conversationId: string) => {
-  const [r] = await callFn<{ marked: number }>('mark_read', { p_user: userId, p_conversation: conversationId })
-  return r?.marked ?? 0
+  const [r] = await callFn<{ marked: number; read_up_to: string | Date | null }>('mark_read', {
+    p_user: userId,
+    p_conversation: conversationId,
+  })
+  return { marked: r?.marked ?? 0, readUpTo: r?.read_up_to ? iso(r.read_up_to) : null }
+}
+
+// Hasta cuando leyo la otra persona lo que el usuario le envio (null = nada leido todavia)
+export const getReadState = async (userId: string, conversationId: string): Promise<string | null> => {
+  const [r] = await callFn<{ out_read_up_to: string | Date | null }>('chat_read_state', {
+    p_user: userId,
+    p_conversation: conversationId,
+  })
+  return r?.out_read_up_to ? iso(r.out_read_up_to) : null
 }
 
 export const unreadTotal = async (userId: string) => {

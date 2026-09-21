@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
@@ -9,6 +9,7 @@ import ActionSheet from '@/components/wall/ActionSheet'
 import { useSafety } from '@/components/safety/useSafety'
 import { REALTIME_EVENTS, useRealtime } from '@/components/app/RealtimeProvider'
 import { authFetch, getSessionUserId } from '@/lib/client-auth'
+import { isNearBottom, laterOf, mergeMessages, olderCursor, seenMessageId } from '@/lib/chat'
 import { formatClock, formatDayLabel } from '@/lib/format'
 import { getSocket } from '@/lib/socket'
 import type { ChatMessage, Conversation } from '@/lib/db'
@@ -32,11 +33,8 @@ const tempMessage = (conversationId: string, fromUserId: string, content: string
   pending: true,
 })
 
-const mergeMessages = (prev: Msg[], incoming: Msg[]) => {
-  const byId = new Map(prev.map((m) => [m.id, m]))
-  for (const m of incoming) byId.set(m.id, m)
-  return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-}
+// Al acercarse tanto al principio de la lista se piden los mensajes anteriores
+const LOAD_OLDER_AT_PX = 80
 
 export default function ChatPage() {
   const { id } = useParams<{ id: string }>()
@@ -52,6 +50,10 @@ export default function ChatPage() {
   const [showContact, setShowContact] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [menu, setMenu] = useState(false)
+  const [hasMore, setHasMore] = useState(false) // puede haber mensajes anteriores sin cargar
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  // Hasta cuando leyo la otra persona lo que envie (para el "Visto")
+  const [readUpTo, setReadUpTo] = useState<string | null>(null)
   // Bloquear o deshacer el match cierra el chat
   const safety = useSafety({
     onBlocked: () => router.replace('/matches'),
@@ -59,7 +61,9 @@ export default function ChatPage() {
   })
 
   const myId = getSessionUserId()
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottom = useRef(true) // false si la persona subio a mirar mensajes viejos
+  const heightBeforeOlder = useRef<number | null>(null) // para no perder el lugar al sumar mensajes arriba
   const lastAt = useRef<string | null>(null)
   const lastTypingSent = useRef(0)
   const stopTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,6 +89,8 @@ export default function ChatPage() {
         const data = await res.json()
         setConv(data.conversation)
         setMessages(data.messages)
+        setHasMore(data.messages.length >= data.pageSize)
+        setReadUpTo(data.readUpTo)
         markRead()
       })
       .catch(() => !cancelled && setError('No se pudo cargar la conversación'))
@@ -96,8 +102,45 @@ export default function ChatPage() {
 
   useEffect(() => {
     lastAt.current = messages.filter((m) => !m.pending).at(-1)?.createdAt ?? null
-    bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages, typing])
+  }, [messages])
+
+  // Posicion del scroll: al cargar mensajes viejos se mantiene lo que se estaba leyendo; si no, se sigue
+  // el final de la charla (salvo que la persona haya subido a mirar mensajes anteriores)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    if (heightBeforeOlder.current !== null) {
+      el.scrollTop += el.scrollHeight - heightBeforeOlder.current
+      heightBeforeOlder.current = null
+      return
+    }
+    if (stickToBottom.current) el.scrollTop = el.scrollHeight
+  }, [messages, typing, loading])
+
+  const loadOlder = useCallback(async () => {
+    const oldest = messages.find((m) => !m.pending)
+    if (loadingOlder || !hasMore || !oldest) return
+    setLoadingOlder(true)
+    try {
+      const res = await authFetch(`/api/messages/${id}?before=${encodeURIComponent(olderCursor(oldest.createdAt))}`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      heightBeforeOlder.current = scrollRef.current?.scrollHeight ?? null
+      setMessages((prev) => mergeMessages(prev, data.messages))
+      setHasMore(data.messages.length >= data.pageSize)
+    } catch {
+      setError('No se pudieron cargar los mensajes anteriores')
+    } finally {
+      setLoadingOlder(false)
+    }
+  }, [id, messages, hasMore, loadingOlder])
+
+  const onScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottom.current = isNearBottom(el)
+    if (el.scrollTop < LOAD_OLDER_AT_PX) void loadOlder()
+  }
 
   const receive = useCallback(
     (incoming: Msg[]) => {
@@ -124,11 +167,17 @@ export default function ChatPage() {
       if (typingTtl.current) clearTimeout(typingTtl.current)
       if (d.typing) typingTtl.current = setTimeout(() => setTyping(false), TYPING_TTL_MS)
     }
+    const onRead = (e: Event) => {
+      const d = (e as CustomEvent<{ conversationId: string; readUpTo: string }>).detail
+      if (d.conversationId === id) setReadUpTo((prev) => laterOf(prev, d.readUpTo))
+    }
     window.addEventListener(REALTIME_EVENTS.message, onMessage)
     window.addEventListener(REALTIME_EVENTS.typing, onTyping)
+    window.addEventListener(REALTIME_EVENTS.read, onRead)
     return () => {
       window.removeEventListener(REALTIME_EVENTS.message, onMessage)
       window.removeEventListener(REALTIME_EVENTS.typing, onTyping)
+      window.removeEventListener(REALTIME_EVENTS.read, onRead)
     }
   }, [id, receive])
 
@@ -138,7 +187,11 @@ export default function ChatPage() {
       try {
         const after = lastAt.current
         const res = await authFetch(`/api/messages/${id}${after ? `?after=${encodeURIComponent(after)}` : ''}`)
-        if (res.ok) receive((await res.json()).messages)
+        if (res.ok) {
+          const data = await res.json()
+          receive(data.messages)
+          setReadUpTo((prev) => laterOf(prev, data.readUpTo)) // el "Visto" tambien llega por polling
+        }
       } catch {}
     }, connected ? POLL_CONNECTED_MS : POLL_FALLBACK_MS)
     return () => clearInterval(poll)
@@ -174,6 +227,7 @@ export default function ChatPage() {
     setError(null)
     setText('')
 
+    stickToBottom.current = true // al enviar se baja al final aunque se estuviera leyendo arriba
     const temp = tempMessage(id, myId, content)
     const tempId = temp.id
     setMessages((prev) => [...prev, temp])
@@ -215,6 +269,7 @@ export default function ChatPage() {
 
   const { contact } = conv.other
   const hasContact = Boolean(contact.instagram || contact.whatsapp)
+  const seenId = seenMessageId(messages, myId ?? '', readUpTo)
 
   return (
     <div className="flex h-full flex-col">
@@ -286,7 +341,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -308,6 +363,19 @@ export default function ChatPage() {
           </div>
         ) : (
           <ol className="space-y-1.5">
+            {hasMore && (
+              <li className="flex justify-center pb-2">
+                <button
+                  type="button"
+                  onClick={() => void loadOlder()}
+                  disabled={loadingOlder}
+                  className="flex items-center gap-2 rounded-full bg-cream px-4 py-1.5 text-xs font-medium text-neutral-600 disabled:opacity-60"
+                >
+                  {loadingOlder && <Loader2 size={13} className="animate-spin" />}
+                  {loadingOlder ? 'Cargando…' : 'Ver mensajes anteriores'}
+                </button>
+              </li>
+            )}
             {messages.map((m, i) => {
               const mine = m.fromUserId === myId
               const newDay = i === 0 || new Date(messages[i - 1].createdAt).toDateString() !== new Date(m.createdAt).toDateString()
@@ -330,6 +398,11 @@ export default function ChatPage() {
                       </p>
                     </div>
                   </li>
+                  {m.id === seenId && (
+                    <li className="pr-1 text-right text-[11px] text-neutral-400" aria-label="Mensaje visto">
+                      Visto
+                    </li>
+                  )}
                 </Fragment>
               )
             })}
@@ -346,7 +419,6 @@ export default function ChatPage() {
             )}
           </ol>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {error && (
