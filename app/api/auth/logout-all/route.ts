@@ -1,5 +1,5 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
-import { revokeSessions } from '@/lib/db'
+import { deletePushSubscriptions, revokeSessions } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 
 // Cierra la sesion en TODOS los dispositivos (tambien en este): los tokens anteriores dejan de servir.
@@ -13,6 +13,7 @@ export async function POST(req: Request) {
 
   try {
     await revokeSessions(auth.userId)
+    await deletePushSubscriptions(auth.userId) // sin sesion tampoco se reciben avisos
     return Response.json({ ok: true })
   } catch (error) {
     console.error('auth/logout-all error:', error)

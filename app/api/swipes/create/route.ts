@@ -2,6 +2,7 @@ import { after } from 'next/server'
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getUserContext, recordSwipe } from '@/lib/db'
 import { emitTo } from '@/lib/realtime'
+import { sendPush } from '@/lib/push-server'
 import { rateLimit } from '@/lib/rate-limit'
 import { UUID_RE } from '@/lib/validators'
 
@@ -60,13 +61,19 @@ export async function POST(req: Request) {
 
     if (result.matched) {
       const me = ctx.profile
-      after(() =>
-        emitTo(result.target.userId, 'match:created', {
+      after(async () => {
+        await emitTo(result.target.userId, 'match:created', {
           conversationId: result.conversationId,
           name: me.name,
           photo: me.mainPhotoUrl,
         })
-      )
+        await sendPush(result.target.userId, {
+          title: '¡Nuevo match! 💚',
+          body: `Hiciste match con ${me.name}. ¡Rompé el hielo!`,
+          url: result.conversationId ? `/matches/${result.conversationId}` : '/matches',
+          tag: `match-${result.conversationId ?? me.name}`,
+        })
+      })
     }
 
     return Response.json({

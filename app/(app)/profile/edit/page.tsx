@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2, X } from 'lucide-react'
 import { useMe } from '@/components/app/MeProvider'
+import PushToggle from '@/components/app/PushToggle'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
 import ModeFields from '@/components/profile/ModeFields'
 import ActionSheet from '@/components/wall/ActionSheet'
 import { authFetch, clearToken, compressImage } from '@/lib/client-auth'
+import { disablePushQuietly } from '@/lib/push-client'
 import { disconnectSocket } from '@/lib/socket'
 import {
   AGE_MAX,
@@ -122,6 +124,7 @@ export default function EditProfilePage() {
     setConfirmLogoutAll(false)
     setError(null)
     try {
+      await disablePushQuietly() // primero, con el token todavia vigente
       const res = await authFetch('/api/auth/logout-all', { method: 'POST' })
       if (!res.ok) throw new Error()
       disconnectSocket()
@@ -332,6 +335,8 @@ export default function EditProfilePage() {
         </section>
         </>
         )}
+
+        <PushToggle />
 
         <Link href="/profile/blocked" className="block text-center text-sm font-semibold text-ig-link">
           Cuentas bloqueadas

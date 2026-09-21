@@ -1,5 +1,6 @@
 import { supabaseServer } from '@/lib/supabase'
 import type { LookingFor, Profile, ProfileInput, Side } from '@/lib/profile-schema'
+import type { PushSubscriptionJson } from '@/lib/push'
 import type { Role } from '@/lib/roles'
 import { forgetSession } from '@/lib/session'
 
@@ -932,4 +933,34 @@ export const userIdForProfile = async (profileId: string) => {
   const { data, error } = await supabaseServer().from('profiles').select('user_id').eq('id', profileId).maybeSingle()
   if (error) throw error
   return (data?.user_id as string | undefined) ?? null
+}
+
+// ---- Notificaciones push (una suscripcion por dispositivo) ----
+
+// Guarda la suscripcion de un dispositivo; si ya era de otra cuenta, pasa a esta. Lanza si tiene forma invalida.
+export const savePushSubscription = async (userId: string, subscription: PushSubscriptionJson, userAgent: string | null) => {
+  await callFn('save_push_subscription', {
+    p_user: userId,
+    p_subscription: JSON.stringify(subscription),
+    p_user_agent: userAgent,
+  })
+}
+
+export const deletePushSubscription = async (userId: string, endpoint: string) => {
+  const [r] = await callFn<{ out_ok: boolean }>('delete_push_subscription', { p_user: userId, p_endpoint: endpoint })
+  return r?.out_ok === true
+}
+
+export const deletePushSubscriptions = async (userId: string) => {
+  const [r] = await callFn<{ out_count: number }>('delete_push_subscriptions', { p_user: userId })
+  return r?.out_count ?? 0
+}
+
+export const listPushSubscriptions = async (userId: string): Promise<PushSubscriptionJson[]> =>
+  (await callFn<{ out_subscription: PushSubscriptionJson }>('list_push_subscriptions', { p_user: userId })).map(
+    (r) => r.out_subscription
+  )
+
+export const dropPushEndpoint = async (endpoint: string) => {
+  await callFn('drop_push_endpoint', { p_endpoint: endpoint })
 }

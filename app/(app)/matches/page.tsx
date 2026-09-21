@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Heart, Loader2 } from 'lucide-react'
+import PushPrompt from '@/components/app/PushPrompt'
 import { REALTIME_EVENTS, useRealtime } from '@/components/app/RealtimeProvider'
 import { authFetch } from '@/lib/client-auth'
 import { formatListTime } from '@/lib/format'
@@ -62,7 +63,9 @@ export default function MatchesPage() {
 
   if (conversations.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+      <div className="flex h-full flex-col justify-center">
+        <PushPrompt />
+        <div className="flex flex-col items-center px-8 text-center">
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
           <Heart size={30} />
         </span>
@@ -76,6 +79,7 @@ export default function MatchesPage() {
         >
           Ir a descubrir
         </Link>
+        </div>
       </div>
     )
   }
@@ -85,6 +89,7 @@ export default function MatchesPage() {
       <header className="px-6 pb-2 pt-5">
         <h1 className="text-2xl font-semibold">Tus matches</h1>
       </header>
+      <PushPrompt />
 
       {fresh.length > 0 && (
         <section className="pb-2">

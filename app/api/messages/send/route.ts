@@ -3,6 +3,7 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getUserContext, sendMessage } from '@/lib/db'
 import { maybeDemoReply } from '@/lib/dev-demo'
 import { emitTo } from '@/lib/realtime'
+import { sendPush } from '@/lib/push-server'
 import { rateLimit } from '@/lib/rate-limit'
 import { UUID_RE } from '@/lib/validators'
 
@@ -49,6 +50,13 @@ export async function POST(req: Request) {
         message,
         fromName,
         preview: text.slice(0, 80),
+      })
+      // Para quien no tiene la app abierta (el service worker no lo muestra si la esta mirando)
+      await sendPush(message.toUserId, {
+        title: fromName,
+        body: text,
+        url: `/matches/${conversationId}`,
+        tag: `chat-${conversationId}`,
       })
       await maybeDemoReply(message, fromName)
     })

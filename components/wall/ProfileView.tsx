@@ -12,6 +12,7 @@ import PostCard from '@/components/wall/PostCard'
 import StoryRing from '@/components/wall/StoryRing'
 import { usePostActions } from '@/components/wall/usePostActions'
 import { authFetch, clearToken, getSessionUserId } from '@/lib/client-auth'
+import { disablePushQuietly } from '@/lib/push-client'
 import { isAdminRole } from '@/lib/roles'
 import { disconnectSocket } from '@/lib/socket'
 import type { WallPhoto } from '@/lib/db'
@@ -99,7 +100,8 @@ export default function ProfileView({ userId }: { userId?: string }) {
           <button
             type="button"
             aria-label="Cerrar sesión"
-            onClick={() => {
+            onClick={async () => {
+              await disablePushQuietly() // con el token todavia vigente; si el dispositivo se comparte, no recibe avisos de esta cuenta
               disconnectSocket()
               clearToken()
               router.replace('/login')

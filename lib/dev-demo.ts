@@ -1,6 +1,7 @@
 // SOLO DESARROLLO (LOCAL_DB=1): los invitados demo contestan solos para poder probar el chat
 // sin dos personas reales. Nunca se ejecuta contra Supabase.
-import { isDemoUser, markRead, sendMessage, type ChatMessage } from '@/lib/db'
+import { getAuthor, isDemoUser, markRead, sendMessage, type ChatMessage } from '@/lib/db'
+import { sendPush } from '@/lib/push-server'
 import { emitTo } from '@/lib/realtime'
 
 const REPLIES = [
@@ -33,5 +34,12 @@ export const maybeDemoReply = async (sent: ChatMessage & { toUserId: string }, s
     message: reply,
     fromName: senderName,
     preview: content,
+  })
+  const demoName = (await getAuthor(sent.toUserId))?.name ?? 'Un invitado'
+  await sendPush(sent.fromUserId, {
+    title: demoName,
+    body: content,
+    url: `/matches/${sent.conversationId}`,
+    tag: `chat-${sent.conversationId}`,
   })
 }
