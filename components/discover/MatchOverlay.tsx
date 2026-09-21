@@ -1,5 +1,6 @@
 'use client'
 
+import { useDialog } from '@/components/a11y/useDialog'
 import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 
@@ -13,11 +14,17 @@ type Props = {
 const photoClass = 'h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg'
 
 export default function MatchOverlay({ myPhoto, other, onKeepGoing, onMessage }: Props) {
+
+  const dialogRef = useDialog<HTMLDivElement>(onKeepGoing)
+
   return (
     <motion.div
-      role="dialog"
+      ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
       aria-label="Nuevo match"
-      className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-brand px-8 text-center text-white"
+      className="focus-light outline-none absolute inset-0 z-30 flex flex-col items-center justify-center bg-brand px-8 text-center text-white"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -30,7 +37,7 @@ export default function MatchOverlay({ myPhoto, other, onKeepGoing, onMessage }:
       >
         ¡Es un match!
       </motion.h2>
-      <p className="mt-2 text-white/85">Vos y {other.name} se gustaron</p>
+      <p className="mt-2 text-white">Vos y {other.name} se gustaron</p>
 
       <div className="relative mt-8 flex items-center">
         {myPhoto ? (

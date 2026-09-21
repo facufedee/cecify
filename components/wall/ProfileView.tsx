@@ -92,7 +92,7 @@ export default function ProfileView({ userId }: { userId?: string }) {
         )}
         <h1 className="flex-1 truncate text-base font-bold">{author.name}</h1>
         {!isMe && (
-          <button type="button" aria-label="Más opciones" onClick={() => setMenu(true)} className="p-1">
+          <button type="button" aria-label="Más opciones" onClick={() => setMenu(true)} className="tap relative p-1">
             <MoreHorizontal size={22} />
           </button>
         )}
@@ -118,15 +118,13 @@ export default function ProfileView({ userId }: { userId?: string }) {
           <div className="flex items-center gap-6">
             <StoryRing src={author.photo} size={86} alt={author.name} />
             <dl className="flex flex-1 justify-around text-center">
-              <div>
-                <dt className="sr-only">Publicaciones</dt>
+              <div className="flex flex-col-reverse">
+                <dt className="text-sm">{photos.length === 1 ? 'publicación' : 'publicaciones'}</dt>
                 <dd className="text-base font-semibold">{photos.length}</dd>
-                <p className="text-sm">{photos.length === 1 ? 'publicación' : 'publicaciones'}</p>
               </div>
-              <div>
-                <dt className="sr-only">Me gusta recibidos</dt>
+              <div className="flex flex-col-reverse">
+                <dt className="text-sm">me gusta</dt>
                 <dd className="text-base font-semibold">{totalLikes}</dd>
-                <p className="text-sm">me gusta</p>
               </div>
             </dl>
           </div>
@@ -151,7 +149,7 @@ export default function ProfileView({ userId }: { userId?: string }) {
         </section>
 
         <div className="flex justify-center border-t border-ig-border">
-          <span className="-mt-px flex items-center border-t border-ig-text px-10 py-2.5" aria-label="Publicaciones">
+          <span className="-mt-px flex items-center border-t border-ig-text px-10 py-2.5" role="img" aria-label="Publicaciones">
             <LayoutGrid size={22} />
           </span>
         </div>

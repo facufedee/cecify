@@ -16,7 +16,7 @@ const card = (on: boolean) =>
   }`
 
 const chip = (on: boolean) =>
-  `rounded-full border px-3.5 py-1.5 text-sm transition ${
+  `rounded-full border px-3.5 py-2 text-sm transition ${
     on ? 'border-brand bg-brand text-white' : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand'
   }`
 
@@ -94,7 +94,7 @@ export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWan
       {wantsMatch === true && (
         <section>
           <h2 className="mb-1 text-sm font-medium">¿Qué estás buscando?</h2>
-          <p className="mb-3 text-xs text-neutral-400">Podés elegir las dos.</p>
+          <p className="mb-3 text-xs text-neutral-500">Podés elegir las dos.</p>
           <div className="flex flex-wrap gap-2">
             {LOOKING_FOR.map((v) => (
               <button

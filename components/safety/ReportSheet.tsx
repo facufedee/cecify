@@ -1,5 +1,6 @@
 'use client'
 
+import { useDialog } from '@/components/a11y/useDialog'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Loader2 } from 'lucide-react'
@@ -39,6 +40,7 @@ export default function ReportSheet({
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
   const submit = async () => {
     if (!reason || sending) return
     setSending(true)
@@ -77,9 +79,12 @@ export default function ReportSheet({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         aria-label="Reportar"
-        className="max-h-[88%] overflow-y-auto rounded-t-2xl bg-white"
+        className="outline-none max-h-[88%] overflow-y-auto rounded-t-2xl bg-white"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

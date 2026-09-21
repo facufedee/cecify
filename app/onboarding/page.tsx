@@ -34,7 +34,7 @@ const TITLES: Record<StepId, string> = {
 }
 
 const inputClass =
-  'w-full rounded-xl bg-cream px-4 py-3 text-sm text-neutral-800 outline-none ring-1 ring-transparent transition placeholder:text-neutral-400 focus:bg-white focus:ring-brand'
+  'w-full rounded-xl bg-cream px-4 py-3 text-sm text-neutral-800 outline-none ring-1 ring-transparent transition placeholder:text-neutral-600 focus:bg-white focus:ring-brand'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -231,7 +231,7 @@ export default function OnboardingPage() {
                   </label>
                   <label className="block text-sm">
                     <span className="mb-1.5 flex justify-between font-medium">
-                      Sobre vos <span className="font-normal text-neutral-400">{bio.length}/{BIO_MAX}</span>
+                      Sobre vos <span className="font-normal text-neutral-500">{bio.length}/{BIO_MAX}</span>
                     </span>
                     <textarea
                       className={`${inputClass} resize-none`}
@@ -263,7 +263,7 @@ export default function OnboardingPage() {
                       />
                     ))}
                   </div>
-                  <p className="text-center text-xs text-neutral-400">
+                  <p className="text-center text-xs text-neutral-500">
                     La foto principal es obligatoria. Las otras tres son opcionales.
                   </p>
                 </div>
@@ -274,7 +274,7 @@ export default function OnboardingPage() {
                   <section>
                     <h2 className="mb-3 flex justify-between text-sm font-medium">
                       Intereses
-                      <span className="font-normal text-neutral-400">
+                      <span className="font-normal text-neutral-500">
                         {interests.length}/{MAX_INTERESTS}
                       </span>
                     </h2>
@@ -287,7 +287,7 @@ export default function OnboardingPage() {
                             type="button"
                             aria-pressed={on}
                             onClick={() => toggleInterest(interest)}
-                            className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                            className={`rounded-full border px-3.5 py-2 text-sm transition ${
                               on
                                 ? 'border-brand bg-brand text-white'
                                 : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand'
@@ -303,7 +303,7 @@ export default function OnboardingPage() {
                   <section className="space-y-4">
                     <div>
                       <h2 className="text-sm font-medium">Cómo te contactan tus matches</h2>
-                      <p className="mt-0.5 text-xs text-neutral-400">
+                      <p className="mt-0.5 text-xs text-neutral-500">
                         Solo se muestra cuando hay match. Completá al menos uno.
                       </p>
                     </div>

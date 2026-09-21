@@ -178,7 +178,7 @@ export default function EditProfilePage() {
   return (
     <div className="flex h-full flex-col font-ig text-ig-text">
       <header className="flex items-center justify-between border-b border-ig-soft px-4 py-3">
-        <button type="button" onClick={() => router.back()} aria-label="Cancelar" className="p-1">
+        <button type="button" onClick={() => router.back()} aria-label="Cancelar" className="tap relative p-1">
           <X size={26} />
         </button>
         <h1 className="text-base font-semibold">Editar perfil</h1>
@@ -186,7 +186,7 @@ export default function EditProfilePage() {
           type="button"
           onClick={save}
           disabled={!valid || saving}
-          className="min-w-[3.5rem] text-right text-sm font-semibold text-ig-link disabled:opacity-40"
+          className="tap relative min-w-[3.5rem] text-right text-sm font-semibold text-ig-link disabled:opacity-40"
         >
           {saving ? <Loader2 size={18} className="ml-auto animate-spin" /> : 'Listo'}
         </button>
@@ -274,7 +274,7 @@ export default function EditProfilePage() {
                   type="button"
                   aria-pressed={on}
                   onClick={() => toggleInterest(interest)}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                  className={`rounded-full border px-3.5 py-2 text-sm transition ${
                     on ? 'border-ig-text bg-ig-text text-white' : 'border-ig-border text-ig-text'
                   }`}
                 >

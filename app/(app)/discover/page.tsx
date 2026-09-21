@@ -120,7 +120,7 @@ export default function DiscoverPage() {
         <h1 className="text-2xl font-semibold">
           Descubrí a los <span className="text-brand">invitados</span>
         </h1>
-        <p className="text-sm text-neutral-400">Deslizá a la derecha si querés conocer a alguien</p>
+        <p className="text-sm text-neutral-500">Deslizá a la derecha si querés conocer a alguien</p>
       </header>
 
       <div className="relative mx-5 min-h-0 flex-1">

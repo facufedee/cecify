@@ -1,5 +1,6 @@
 'use client'
 
+import { useDialog } from '@/components/a11y/useDialog'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
@@ -15,6 +16,7 @@ export default function ProfileSheet({
 }) {
   const photos = [profile.mainPhotoUrl, ...profile.additionalPhotos]
 
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
   return (
     <motion.div
       className="absolute inset-0 z-20 flex flex-col justify-end bg-black/40"
@@ -24,9 +26,12 @@ export default function ProfileSheet({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         aria-label={`Perfil de ${profile.name}`}
-        className="max-h-[88%] overflow-y-auto rounded-t-[2rem] bg-white pb-6"
+        className="outline-none max-h-[88%] overflow-y-auto rounded-t-[2rem] bg-white pb-6"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useImperativeHandle, useRef, type Ref } from 'react'
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import { Info } from 'lucide-react'
 import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
 
@@ -25,12 +25,13 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
   const likeOpacity = useTransform(x, [30, 120], [0, 1])
   const skipOpacity = useTransform(x, [-120, -30], [1, 0])
   const leaving = useRef(false)
+  const reduceMotion = useReducedMotion()
 
   const fling = (action: SwipeAction) => {
     if (leaving.current) return
     leaving.current = true
     animate(x, action === 'like' ? 520 : -520, {
-      duration: 0.25,
+      duration: reduceMotion ? 0.01 : 0.25,
       ease: 'easeIn',
       onComplete: () => onSwipe(action),
     })

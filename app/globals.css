@@ -2,22 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* La app es de un solo tema (claro). Se declara para que los controles del navegador (campos, barras de
+   desplazamiento) no se pinten oscuros en dispositivos con modo oscuro, dejando texto claro sobre fondo claro. */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Foco visible para quien navega con teclado (o lector de pantalla): sin esto varios botones no mostraban nada.
+   :focus-visible no aparece al tocar con el dedo o el mouse, solo con teclado. */
+:focus-visible {
+  outline: 2px solid #0071c2;
+  outline-offset: 2px;
+}
+/* Sobre fondos oscuros o de color (historias, match) el azul no se ve: aro blanco */
+.focus-light:focus-visible,
+.focus-light *:focus-visible {
+  outline-color: #ffffff;
+}
+
+/* Quien pidio menos movimiento en su sistema: se apagan las animaciones y transiciones decorativas.
+   Los indicadores de carga (animate-spin) se conservan: informan que algo esta pasando. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer utilities {
@@ -27,6 +52,14 @@ body {
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Agranda el area que responde al toque unos 8 px por lado sin mover el dibujo (iconos chicos).
+     El elemento tiene que estar posicionado (relative o absolute). */
+  .tap::after {
+    content: '';
+    position: absolute;
+    inset: -0.5rem;
   }
 
   .text-balance {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
+import { useDialog } from '@/components/a11y/useDialog'
 
 export const btn = {
   primary:
@@ -15,7 +16,7 @@ export const btn = {
 }
 
 export const inputClass =
-  'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-neutral-400 focus:border-brand focus:ring-1 focus:ring-brand'
+  'w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-neutral-500 focus:border-brand focus:ring-1 focus:ring-brand'
 
 export function Spinner({ className = '' }: { className?: string }) {
   return <Loader2 className={`animate-spin text-brand ${className}`} aria-label="Cargando" />
@@ -61,14 +62,7 @@ export function Modal({
   children: React.ReactNode
   wide?: boolean
 }) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    ref.current?.focus()
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  const ref = useDialog<HTMLDivElement>(onClose)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>

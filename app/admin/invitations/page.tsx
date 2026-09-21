@@ -20,7 +20,7 @@ function InviteCard({ guest, url }: { guest: AdminGuest; url: string }) {
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">CL</span>
           <span className="text-sm font-semibold text-brand-dark">Lucas &amp; Cecilia</span>
         </div>
-        <p className="mt-3 text-xs text-neutral-500">Estás invitado a la fiesta y a Cecify, la app para compartir la noche.</p>
+        <p className="mt-3 text-xs text-neutral-600">Estás invitado a la fiesta y a Cecify, la app para compartir la noche.</p>
         <p className="mt-1 break-words text-lg font-semibold leading-tight text-neutral-800">{guest.name}</p>
         <div className="mt-auto pt-2 text-[11px] leading-snug text-neutral-600">
           <p>¿Sin cámara? Entrá con tu email y este código:</p>

@@ -34,7 +34,7 @@ export default function BottomNav() {
   })
 
   return (
-    <nav className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+    <nav aria-label="Principal" className="flex border-t border-neutral-100 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
       {items.map(({ href, label, Icon }) => {
         const active = pathname === href || (href === '/photos' && pathname.startsWith('/photos/'))
         const badge = href === '/matches' && unread > 0 ? unread : 0
@@ -44,7 +44,7 @@ export default function BottomNav() {
             href={href}
             aria-current={active ? 'page' : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-medium transition-colors ${
-              active ? 'text-brand' : 'text-neutral-400 hover:text-neutral-600'
+              active ? 'text-brand' : 'text-neutral-500 hover:text-neutral-600'
             }`}
           >
             <span className="relative">

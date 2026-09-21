@@ -106,6 +106,13 @@ Decisiones de diseño que conviene conocer:
   caído, la app sigue funcionando por polling.
 - **Las fotos se reprocesan en el servidor** (se elimina el EXIF/GPS) y una URL de foto solo se acepta si la subió el propio usuario.
 
+## Accesibilidad
+
+`tests/unit/a11y-guard.test.ts` protege lo básico (contraste de la paleta calculado, diálogos con `useDialog`, zoom no bloqueado,
+foco visible, movimiento reducido). Para una auditoría completa en el navegador: `npm i --no-save axe-core`, copiar
+`node_modules/axe-core/axe.min.js` a `public/` **temporalmente**, cargarlo en la página y ejecutar `axe.run(document)` en cada
+pantalla (también con un diálogo abierto y con la letra al 200 %). No lo dejes en `public/`.
+
 ## Migraciones
 
 Están en `supabase/migrations/` y se aplican en orden. En local se aplican solas. Con Supabase: `npx supabase db push`

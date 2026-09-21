@@ -15,7 +15,7 @@ export default function StepIndicator({ current, total = 3 }: { current: number;
                   ? 'border-brand bg-brand text-white'
                   : active
                     ? 'border-brand bg-brand text-white'
-                    : 'border-neutral-300 bg-white text-neutral-400'
+                    : 'border-neutral-300 bg-white text-neutral-500'
               }`}
             >
               {done ? <Check size={16} strokeWidth={3} /> : `0${n}`}

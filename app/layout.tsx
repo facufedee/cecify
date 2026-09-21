@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import MotionProvider from '@/components/app/MotionProvider'
 import RegisterServiceWorker from '@/components/app/RegisterServiceWorker'
 import './globals.css'
 
@@ -37,7 +38,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <RegisterServiceWorker />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
       </body>
     </html>
   )

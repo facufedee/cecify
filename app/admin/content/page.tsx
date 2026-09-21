@@ -72,7 +72,7 @@ function PhotoModal({
                   </p>
                   <button
                     type="button"
-                    className="shrink-0 rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                    className="shrink-0 rounded p-1 text-neutral-500 hover:bg-red-50 hover:text-red-600"
                     aria-label={`Borrar el comentario de ${c.authorName}`}
                     onClick={() => setConfirm(c)}
                   >

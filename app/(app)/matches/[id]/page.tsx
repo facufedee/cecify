@@ -54,6 +54,8 @@ export default function ChatPage() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   // Hasta cuando leyo la otra persona lo que envie (para el "Visto")
   const [readUpTo, setReadUpTo] = useState<string | null>(null)
+  // Texto que anuncia el lector de pantalla cuando llega un mensaje de la otra persona
+  const [announcement, setAnnouncement] = useState('')
   // Bloquear o deshacer el match cierra el chat
   const safety = useSafety({
     onBlocked: () => router.replace('/matches'),
@@ -61,6 +63,7 @@ export default function ChatPage() {
   })
 
   const myId = getSessionUserId()
+  const otherName = useRef('Nuevo mensaje')
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true) // false si la persona subio a mirar mensajes viejos
   const heightBeforeOlder = useRef<number | null>(null) // para no perder el lugar al sumar mensajes arriba
@@ -88,6 +91,7 @@ export default function ChatPage() {
         if (!res.ok) throw new Error()
         const data = await res.json()
         setConv(data.conversation)
+        otherName.current = data.conversation.other.name
         setMessages(data.messages)
         setHasMore(data.messages.length >= data.pageSize)
         setReadUpTo(data.readUpTo)
@@ -146,7 +150,11 @@ export default function ChatPage() {
     (incoming: Msg[]) => {
       if (incoming.length === 0) return
       setMessages((prev) => mergeMessages(prev, incoming))
-      if (incoming.some((m) => m.fromUserId !== myId)) markRead()
+      const fromOther = incoming.filter((m) => m.fromUserId !== myId)
+      if (fromOther.length > 0) {
+        markRead()
+        setAnnouncement(`${otherName.current}: ${fromOther[fromOther.length - 1].content}`)
+      }
     },
     [markRead, myId]
   )
@@ -273,7 +281,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-neutral-100 px-4 py-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-neutral-100 px-4 py-3">
         <button
           type="button"
           aria-label="Volver"
@@ -284,10 +292,10 @@ export default function ChatPage() {
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={conv.other.photo} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[5rem] flex-1">
           <h1 className="truncate font-semibold leading-tight">
             {conv.other.name}
-            {conv.other.age > 0 && <span className="font-normal text-neutral-400">, {conv.other.age}</span>}
+            {conv.other.age > 0 && <span className="font-normal text-neutral-500">, {conv.other.age}</span>}
           </h1>
           <p className={`h-4 text-xs ${typing ? 'text-brand' : 'text-transparent'}`} aria-live="polite">
             {typing ? 'escribiendo…' : '.'}
@@ -298,7 +306,7 @@ export default function ChatPage() {
             type="button"
             onClick={() => setShowContact((v) => !v)}
             aria-expanded={showContact}
-            className="shrink-0 rounded-xl bg-brand-soft px-3 py-2 text-xs font-semibold text-brand"
+            className="tap relative shrink-0 rounded-xl bg-brand-soft px-3 py-2 text-xs font-semibold text-brand-dark"
           >
             Contacto
           </button>
@@ -307,7 +315,7 @@ export default function ChatPage() {
           type="button"
           onClick={() => setMenu(true)}
           aria-label="Más opciones"
-          className="shrink-0 p-1.5 text-neutral-500"
+          className="tap relative shrink-0 p-1.5 text-neutral-500"
         >
           <MoreVertical size={20} />
         </button>
@@ -340,6 +348,10 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      <p className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </p>
 
       <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
@@ -382,7 +394,7 @@ export default function ChatPage() {
               return (
                 <Fragment key={m.id}>
                   {newDay && (
-                    <li className="py-2 text-center text-xs capitalize text-neutral-400">
+                    <li className="py-2 text-center text-xs capitalize text-neutral-500">
                       {formatDayLabel(m.createdAt)}
                     </li>
                   )}
@@ -393,13 +405,13 @@ export default function ChatPage() {
                       } ${m.pending ? 'opacity-60' : ''}`}
                     >
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                      <p className={`mt-0.5 text-right text-[10px] ${mine ? 'text-white/70' : 'text-neutral-400'}`}>
+                      <p className={`mt-0.5 text-right text-[10px] ${mine ? 'text-white' : 'text-neutral-600'}`}>
                         {m.pending ? 'enviando…' : formatClock(m.createdAt)}
                       </p>
                     </div>
                   </li>
                   {m.id === seenId && (
-                    <li className="pr-1 text-right text-[11px] text-neutral-400" aria-label="Mensaje visto">
+                    <li className="pr-1 text-right text-[11px] text-neutral-500" aria-label="Mensaje visto">
                       Visto
                     </li>
                   )}
@@ -408,7 +420,7 @@ export default function ChatPage() {
             })}
             {typing && (
               <li className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-cream px-4 py-2.5 text-neutral-400" aria-hidden>
+                <div className="rounded-2xl rounded-bl-md bg-cream px-4 py-2.5 text-neutral-500" aria-hidden>
                   <span className="inline-flex gap-1">
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.2s]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.1s]" />
@@ -441,7 +453,7 @@ export default function ChatPage() {
           placeholder="Escribí un mensaje…"
           aria-label="Mensaje"
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-full bg-cream px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-neutral-400 focus:bg-white focus:ring-brand"
+          className="min-w-0 flex-1 rounded-full bg-cream px-4 py-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-neutral-600 focus:bg-white focus:ring-brand"
         />
         <button
           type="submit"

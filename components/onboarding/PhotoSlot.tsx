@@ -33,7 +33,7 @@ export default function PhotoSlot({ preview, uploading, main = false, onFile, on
           </span>
         )
       ) : (
-        <span className="flex flex-col items-center gap-1 text-brand">
+        <span className="flex flex-col items-center gap-1 text-brand-dark">
           {main ? <Camera size={32} /> : <Plus size={24} />}
           <span className="px-2 text-center text-xs font-medium">{label}</span>
         </span>

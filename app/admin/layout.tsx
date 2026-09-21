@@ -37,7 +37,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   if (!isAdminRole(me.role)) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-neutral-50 px-6 text-center">
-        <ShieldAlert size={36} className="text-neutral-400" />
+        <ShieldAlert size={36} className="text-neutral-500" />
         <h1 className="text-lg font-semibold">No tenés permiso para ver esta página</h1>
         <p className="max-w-sm text-sm text-neutral-500">El panel es solo para los administradores de la fiesta.</p>
         <Link href="/discover" className="text-sm font-medium text-brand">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Eye, Loader2, MoreHorizontal, X } from 'lucide-react'
+import { useDialog } from '@/components/a11y/useDialog'
 import ActionSheet from '@/components/wall/ActionSheet'
 import StoryRing from '@/components/wall/StoryRing'
 import { useSafety } from '@/components/safety/useSafety'
@@ -144,14 +145,15 @@ export default function StoryViewer({
   }, [stories, si])
 
   useEffect(() => {
+    // Escape lo maneja useDialog (cierra solo el dialogo de arriba); las flechas, solo sin hojas abiertas
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (sheet || safety.busy) return
       if (e.key === 'ArrowRight') nextRef.current()
       if (e.key === 'ArrowLeft') prev()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, prev])
+  }, [prev, sheet, safety.busy])
 
   const openViewers = async () => {
     if (!story) return
@@ -182,11 +184,18 @@ export default function StoryViewer({
     }
   }
 
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
+
   const stop = (e: React.PointerEvent) => e.stopPropagation()
 
   return (
     <motion.div
-      className="absolute inset-0 z-50 select-none bg-black font-ig text-white"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={isMine ? 'Tu historia' : `Historia de ${author?.name ?? ''}`.trim()}
+      tabIndex={-1}
+      className="absolute inset-0 z-50 select-none bg-black font-ig text-white outline-none focus-light"
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0 }}
@@ -358,51 +367,56 @@ export default function StoryViewer({
             actions={[{ label: 'Eliminar', destructive: true, onClick: remove }]}
           />
         )}
-        {sheet === 'viewers' && (
-          <motion.div
-            key="viewers"
-            className="absolute inset-0 z-40 flex flex-col justify-end bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSheet(null)}
-          >
-            <motion.div
-              role="dialog"
-              aria-label="Vistas"
-              className="flex max-h-[60%] flex-col rounded-t-2xl bg-white text-ig-text"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 380, damping: 40 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="border-b border-ig-soft py-3 text-center">
-                <span className="mx-auto mb-2 block h-1 w-10 rounded-full bg-ig-border" />
-                <h2 className="text-base font-semibold">Vistas</h2>
-              </div>
-              <ul className="min-h-[8rem] overflow-y-auto px-4 py-3">
-                {viewers === null && (
-                  <li className="flex justify-center py-6">
-                    <Loader2 className="animate-spin text-ig-muted" />
-                  </li>
-                )}
-                {viewers?.length === 0 && (
-                  <li className="py-8 text-center text-sm text-ig-muted">Todavía nadie vio esta historia.</li>
-                )}
-                {viewers?.map((v) => (
-                  <li key={v.id} className="flex items-center gap-3 py-2">
-                    <StoryRing src={v.photo} size={40} ring={false} />
-                    <span className="flex-1 text-sm font-semibold">{v.name}</span>
-                    <span className="text-xs text-ig-muted">{formatShortAgo(v.viewedAt)}</span>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </motion.div>
-        )}
+        {sheet === 'viewers' && <ViewersSheet key="viewers" viewers={viewers} onClose={() => setSheet(null)} />}
       </AnimatePresence>
       {safety.overlays}
+    </motion.div>
+  )
+}
+
+function ViewersSheet({ viewers, onClose }: { viewers: StoryViewerInfo[] | null; onClose: () => void }) {
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
+  return (
+    <motion.div
+      className="absolute inset-0 z-40 flex flex-col justify-end bg-black/50"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Vistas"
+        tabIndex={-1}
+        className="flex max-h-[60%] flex-col rounded-t-2xl bg-white text-ig-text outline-none"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 40 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-ig-soft py-3 text-center">
+          <span className="mx-auto mb-2 block h-1 w-10 rounded-full bg-ig-border" />
+          <h2 className="text-base font-semibold">Vistas</h2>
+        </div>
+        <ul className="min-h-[8rem] overflow-y-auto px-4 py-3">
+          {viewers === null && (
+            <li className="flex justify-center py-6">
+              <Loader2 className="animate-spin text-ig-muted" />
+            </li>
+          )}
+          {viewers?.length === 0 && <li className="py-8 text-center text-sm text-ig-muted">Todavía nadie vio esta historia.</li>}
+          {viewers?.map((v) => (
+            <li key={v.id} className="flex items-center gap-3 py-2">
+              <StoryRing src={v.photo} size={40} ring={false} />
+              <span className="flex-1 text-sm font-semibold">{v.name}</span>
+              <span className="text-xs text-ig-muted">{formatShortAgo(v.viewedAt)}</span>
+            </li>
+          ))}
+        </ul>
+      </motion.div>
     </motion.div>
   )
 }

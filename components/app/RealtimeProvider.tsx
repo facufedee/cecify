@@ -117,18 +117,21 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
     <RealtimeContext.Provider value={{ connected, unread, refreshUnread }}>
       {children}
 
-      {toast && (
-        <button
-          type="button"
-          onClick={() => {
-            router.push(toast.href)
-            setToast(null)
-          }}
-          className="absolute inset-x-4 top-4 z-40 rounded-2xl bg-brand px-4 py-3 text-left text-sm font-medium text-white shadow-lg"
-        >
-          {toast.title} <span className="font-normal text-white/80">{toast.hint}</span>
-        </button>
-      )}
+      {/* Region "viva": siempre esta en la pagina, asi el lector de pantalla anuncia el aviso cuando aparece */}
+      <div role="status" className="pointer-events-none absolute inset-x-4 top-4 z-40">
+        {toast && (
+          <button
+            type="button"
+            onClick={() => {
+              router.push(toast.href)
+              setToast(null)
+            }}
+            className="pointer-events-auto block w-full rounded-2xl bg-brand px-4 py-3 text-left text-sm font-medium text-white shadow-lg"
+          >
+            {toast.title} <span className="font-normal text-white">{toast.hint}</span>
+          </button>
+        )}
+      </div>
     </RealtimeContext.Provider>
   )
 }

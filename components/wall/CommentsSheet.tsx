@@ -1,5 +1,6 @@
 'use client'
 
+import { useDialog } from '@/components/a11y/useDialog'
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flag, Loader2 } from 'lucide-react'
@@ -29,6 +30,7 @@ export default function CommentsSheet({
   const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
   useEffect(() => {
     let cancelled = false
     authFetch(`/api/photos/${photo.id}/comments`)
@@ -78,9 +80,12 @@ export default function CommentsSheet({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         aria-label="Comentarios"
-        className="flex h-[78%] flex-col rounded-t-2xl bg-white"
+        className="outline-none flex h-[78%] flex-col rounded-t-2xl bg-white"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

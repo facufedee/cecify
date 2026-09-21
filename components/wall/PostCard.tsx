@@ -41,7 +41,7 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
   return (
     <article className="pb-4 font-ig text-ig-text">
       <header className="flex items-center gap-2.5 px-3 py-2.5">
-        <button type="button" onClick={() => onOpenAuthor(photo.authorId)} aria-label={`Ver perfil de ${photo.authorName}`}>
+        <button type="button" onClick={() => onOpenAuthor(photo.authorId)} aria-label={`Ver perfil de ${photo.authorName}`} className="tap relative">
           <StoryRing src={photo.authorPhoto} size={34} ring={false} />
         </button>
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
@@ -54,7 +54,7 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
           </button>
           <span className="shrink-0 text-sm text-ig-muted">• {formatShortAgo(photo.createdAt)}</span>
         </div>
-        <button type="button" onClick={() => onOpenMenu(photo)} aria-label="Más opciones" className="p-1">
+        <button type="button" onClick={() => onOpenMenu(photo)} aria-label="Más opciones" className="tap relative p-1">
           <MoreHorizontal size={22} />
         </button>
       </header>
@@ -92,6 +92,7 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
           onClick={() => onLike(photo)}
           aria-label={photo.likedByMe ? 'Quitar me gusta' : 'Me gusta'}
           aria-pressed={photo.likedByMe}
+          className="tap relative"
         >
           <Heart
             size={26}
@@ -100,7 +101,7 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
             fill={photo.likedByMe ? 'currentColor' : 'none'}
           />
         </motion.button>
-        <button type="button" onClick={() => onOpenComments(photo)} aria-label="Comentar">
+        <button type="button" onClick={() => onOpenComments(photo)} aria-label="Comentar" className="tap relative">
           <MessageCircle size={26} />
         </button>
       </div>

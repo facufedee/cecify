@@ -129,7 +129,7 @@ export default function PhotosPage() {
     <div className="flex h-full flex-col font-ig text-ig-text">
       <header className="flex items-center justify-between px-4 py-3">
         <h1 className="text-2xl font-bold tracking-tight">Cecify</h1>
-        <button type="button" onClick={() => setCreateMenu(true)} aria-label="Crear">
+        <button type="button" onClick={() => setCreateMenu(true)} aria-label="Crear" className="tap relative">
           <SquarePlus size={28} strokeWidth={1.75} />
         </button>
       </header>
@@ -149,9 +149,9 @@ export default function PhotosPage() {
                 <Link
                   href="/stories/new"
                   aria-label="Agregar a tu historia"
-                  className="absolute right-0.5 top-11 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-ig-link text-white"
+                  className="tap absolute right-0 top-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-ig-link text-white"
                 >
-                  <Plus size={12} strokeWidth={3.5} />
+                  <Plus size={14} strokeWidth={3.5} />
                 </Link>
                 <span className="w-full truncate text-center text-xs text-ig-muted">Tu historia</span>
               </div>

@@ -127,7 +127,7 @@ export default function MatchesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate font-semibold">{c.other.name}</span>
-                      <span className="shrink-0 text-xs text-neutral-400">
+                      <span className="shrink-0 text-xs text-neutral-500">
                         {formatListTime(c.lastMessage!.at)}
                       </span>
                     </div>

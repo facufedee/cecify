@@ -1,5 +1,6 @@
 'use client'
 
+import { useDialog } from '@/components/a11y/useDialog'
 import { motion } from 'framer-motion'
 
 export type SheetAction = { label: string; onClick: () => void; destructive?: boolean }
@@ -16,6 +17,9 @@ export default function ActionSheet({
   actions: SheetAction[]
   onClose: () => void
 }) {
+
+  const dialogRef = useDialog<HTMLDivElement>(onClose)
+
   return (
     <motion.div
       className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 px-10 font-ig"
@@ -25,9 +29,12 @@ export default function ActionSheet({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         aria-label={title ?? 'Opciones'}
-        className="w-full max-w-xs overflow-hidden rounded-2xl bg-white text-center text-sm"
+        className="outline-none w-full max-w-xs overflow-hidden rounded-2xl bg-white text-center text-sm"
         initial={{ scale: 0.92, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.92, opacity: 0 }}
