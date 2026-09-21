@@ -720,13 +720,13 @@ export const listComments = async (viewerId: string, photoId: string): Promise<W
   }))
 }
 
-// null = la foto no existe
+// null = la foto no existe o hay un bloqueo entre las dos personas. `photoOwnerId` es a quien hay que avisar.
 export const addComment = async (
   userId: string,
   photoId: string,
   content: string
-): Promise<WallComment | null> => {
-  const [r] = await callFn<{ comment_id: string; created_at: string | Date }>('add_comment', {
+): Promise<(WallComment & { photoOwnerId: string }) | null> => {
+  const [r] = await callFn<{ comment_id: string; created_at: string | Date; photo_owner: string }>('add_comment', {
     p_user: userId,
     p_photo: photoId,
     p_content: content,
@@ -740,6 +740,7 @@ export const addComment = async (
     authorPhoto: author?.photo ?? '',
     body: content.trim(),
     createdAt: iso(r.created_at),
+    photoOwnerId: r.photo_owner,
   }
 }
 
@@ -963,4 +964,38 @@ export const listPushSubscriptions = async (userId: string): Promise<PushSubscri
 
 export const dropPushEndpoint = async (endpoint: string) => {
   await callFn('drop_push_endpoint', { p_endpoint: endpoint })
+}
+
+// ---- Respuestas a historias (privadas: solo las ve quien publico la historia) ----
+
+export type StoryReply = { id: string; fromId: string; fromName: string; fromPhoto: string; content: string; createdAt: string }
+
+// null = la historia no existe / ya vencio, es propia, o hay un bloqueo. `ownerId` es a quien hay que avisar.
+export const addStoryReply = async (userId: string, storyId: string, content: string) => {
+  const [r] = await callFn<{ out_id: string; out_owner: string }>('add_story_reply', {
+    p_user: userId,
+    p_story: storyId,
+    p_content: content,
+  })
+  return r ? { id: r.out_id, ownerId: r.out_owner } : null
+}
+
+// Vacio si `userId` no es el autor de la historia
+export const listStoryReplies = async (userId: string, storyId: string): Promise<StoryReply[]> => {
+  const rows = await callFn<{
+    reply_id: string
+    from_id: string
+    from_name: string
+    from_photo: string | null
+    content: string
+    created_at: string | Date
+  }>('list_story_replies', { p_user: userId, p_story: storyId })
+  return rows.map((r) => ({
+    id: r.reply_id,
+    fromId: r.from_id,
+    fromName: r.from_name,
+    fromPhoto: r.from_photo ?? '',
+    content: r.content,
+    createdAt: iso(r.created_at),
+  }))
 }

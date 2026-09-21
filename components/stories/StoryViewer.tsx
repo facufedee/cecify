@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Eye, Loader2, MoreHorizontal, X } from 'lucide-react'
+import { Eye, Loader2, MoreHorizontal, Send, X } from 'lucide-react'
 import { useDialog } from '@/components/a11y/useDialog'
 import StoryImage from '@/components/stories/StoryImage'
 import ActionSheet from '@/components/wall/ActionSheet'
@@ -10,7 +10,7 @@ import StoryRing from '@/components/wall/StoryRing'
 import { useSafety } from '@/components/safety/useSafety'
 import { authFetch } from '@/lib/client-auth'
 import { formatShortAgo } from '@/lib/format'
-import type { Story, StoryAuthor, StoryViewerInfo } from '@/lib/db'
+import type { Story, StoryAuthor, StoryReply, StoryViewerInfo } from '@/lib/db'
 
 const DURATION = 5000 // ms por historia
 const TICK = 50
@@ -36,6 +36,8 @@ export default function StoryViewer({
   const [paused, setPaused] = useState(false)
   const [sheet, setSheet] = useState<Sheet>(null)
   const [viewers, setViewers] = useState<StoryViewerInfo[] | null>(null)
+  const [replies, setReplies] = useState<StoryReply[] | null>(null)
+  const [replying, setReplying] = useState(false) // escribiendo una respuesta: la historia espera
   const [error, setError] = useState<string | null>(null)
   // Bloquear a quien publico la historia cierra el visor
   const safety = useSafety({ onBlocked: () => onClose() })
@@ -112,7 +114,7 @@ export default function StoryViewer({
 
   // Reloj de la historia actual
   useEffect(() => {
-    if (!story || paused || sheet || safety.busy) return
+    if (!story || paused || replying || sheet || safety.busy) return
     const timer = setInterval(() => {
       elapsedRef.current += TICK
       if (elapsedRef.current >= DURATION) {
@@ -122,7 +124,7 @@ export default function StoryViewer({
       }
     }, TICK)
     return () => clearInterval(timer)
-  }, [story, paused, sheet, safety.busy])
+  }, [story, paused, replying, sheet, safety.busy])
 
   // Marca como vista (una vez por historia, solo las ajenas)
   useEffect(() => {
@@ -149,6 +151,7 @@ export default function StoryViewer({
     // Escape lo maneja useDialog (cierra solo el dialogo de arriba); las flechas, solo sin hojas abiertas
     const onKey = (e: KeyboardEvent) => {
       if (sheet || safety.busy) return
+      if (e.target instanceof HTMLElement && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return
       if (e.key === 'ArrowRight') nextRef.current()
       if (e.key === 'ArrowLeft') prev()
     }
@@ -160,13 +163,18 @@ export default function StoryViewer({
     if (!story) return
     setSheet('viewers')
     setViewers(null)
-    try {
-      const res = await authFetch(`/api/stories/${story.id}/viewers`)
-      if (!res.ok) throw new Error()
-      setViewers((await res.json()).viewers)
-    } catch {
-      setViewers([])
+    setReplies(null)
+    const load = async <T,>(url: string, key: string): Promise<T[]> => {
+      try {
+        const res = await authFetch(url)
+        if (!res.ok) throw new Error()
+        return (await res.json())[key] as T[]
+      } catch {
+        return []
+      }
     }
+    void load<StoryReply>(`/api/stories/${story.id}/replies`, 'replies').then(setReplies)
+    setViewers(await load<StoryViewerInfo>(`/api/stories/${story.id}/viewers`, 'viewers'))
   }
 
   const remove = async () => {
@@ -291,11 +299,15 @@ export default function StoryViewer({
       </div>
 
       {story?.caption && (
-        <p className="pointer-events-none absolute inset-x-6 bottom-20 text-center">
+        <p className={`pointer-events-none absolute inset-x-6 text-center ${isMine ? 'bottom-20' : 'bottom-52'}`}>
           <span className="inline-block max-w-full rounded-lg bg-black/50 px-3.5 py-2 text-lg font-semibold leading-snug">
             {story.caption}
           </span>
         </p>
+      )}
+
+      {!isMine && story && (
+        <ReplyBar key={`reply-${story.id}`} storyId={story.id} name={author.name} onFocusChange={setReplying} />
       )}
 
       {isMine && story && (
@@ -312,7 +324,7 @@ export default function StoryViewer({
       )}
 
       {error && story && (
-        <p role="alert" className="absolute inset-x-6 bottom-24 rounded-xl bg-white px-4 py-2.5 text-center text-sm text-black shadow-lg">
+        <p role="alert" className={`absolute inset-x-6 rounded-xl bg-white px-4 py-2.5 text-center text-sm text-black shadow-lg ${isMine ? 'bottom-24' : 'bottom-56'}`}>
           {error}
         </p>
       )}
@@ -361,14 +373,22 @@ export default function StoryViewer({
             actions={[{ label: 'Eliminar', destructive: true, onClick: remove }]}
           />
         )}
-        {sheet === 'viewers' && <ViewersSheet key="viewers" viewers={viewers} onClose={() => setSheet(null)} />}
+        {sheet === 'viewers' && <ViewersSheet key="viewers" viewers={viewers} replies={replies} onClose={() => setSheet(null)} />}
       </AnimatePresence>
       {safety.overlays}
     </motion.div>
   )
 }
 
-function ViewersSheet({ viewers, onClose }: { viewers: StoryViewerInfo[] | null; onClose: () => void }) {
+function ViewersSheet({
+  viewers,
+  replies,
+  onClose,
+}: {
+  viewers: StoryViewerInfo[] | null
+  replies: StoryReply[] | null
+  onClose: () => void
+}) {
   const dialogRef = useDialog<HTMLDivElement>(onClose)
   return (
     <motion.div
@@ -395,7 +415,27 @@ function ViewersSheet({ viewers, onClose }: { viewers: StoryViewerInfo[] | null;
           <span className="mx-auto mb-2 block h-1 w-10 rounded-full bg-ig-border" />
           <h2 className="text-base font-semibold">Vistas</h2>
         </div>
-        <ul className="min-h-[8rem] overflow-y-auto px-4 py-3">
+        <div className="overflow-y-auto">
+        {replies && replies.length > 0 && (
+          <section aria-label="Respuestas" className="border-b border-ig-soft px-4 py-3">
+            <h3 className="mb-1 text-sm font-semibold">Respuestas ({replies.length})</h3>
+            <ul>
+              {replies.map((r) => (
+                <li key={r.id} className="flex items-start gap-3 py-2">
+                  <StoryRing src={r.fromPhoto} size={36} ring={false} />
+                  <p className="min-w-0 flex-1 break-words text-sm">
+                    <span className="font-semibold">{r.fromName}</span> {r.content}
+                    <span className="ml-2 text-xs text-ig-muted">{formatShortAgo(r.createdAt)}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {replies && replies.length > 0 && viewers && viewers.length > 0 && (
+          <h3 className="px-4 pt-3 text-sm font-semibold">Visto por ({viewers.length})</h3>
+        )}
+        <ul className="min-h-[8rem] px-4 py-3">
           {viewers === null && (
             <li className="flex justify-center py-6">
               <Loader2 className="animate-spin text-ig-muted" />
@@ -410,7 +450,97 @@ function ViewersSheet({ viewers, onClose }: { viewers: StoryViewerInfo[] | null;
             </li>
           ))}
         </ul>
+        </div>
       </motion.div>
     </motion.div>
+  )
+}
+
+const REACTIONS = ['❤️', '😂', '😮', '👏', '🔥']
+const REPLY_MAX = 150
+
+// Responder a la historia de otra persona: un texto o una reaccion rapida. Le llega a ella sola.
+function ReplyBar({ storyId, name, onFocusChange }: { storyId: string; name: string; onFocusChange: (v: boolean) => void }) {
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const stop = (e: React.PointerEvent) => e.stopPropagation() // que tocar aca no cambie de historia
+
+  const send = async (content: string) => {
+    const value = content.trim()
+    if (!value || sending) return
+    setSending(true)
+    setError(null)
+    try {
+      const res = await authFetch(`/api/stories/${storyId}/replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: value }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'No se pudo enviar')
+      setText('')
+      setNotice(`Enviado a ${name}`)
+      setTimeout(() => setNotice(null), 2500)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="absolute inset-x-0 bottom-0 space-y-2.5 px-4 pb-4 pt-6" onPointerDown={stop} onPointerUp={stop}>
+      <p role="status" className="text-center text-sm font-semibold drop-shadow">
+        {notice}
+      </p>
+      {error && (
+        <p role="alert" className="text-center text-sm font-semibold drop-shadow">
+          {error}
+        </p>
+      )}
+      <div className="flex justify-center gap-1" role="group" aria-label="Reacciones rápidas">
+        {REACTIONS.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            aria-label={`Reaccionar con ${emoji}`}
+            disabled={sending}
+            onClick={() => void send(emoji)}
+            className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full text-2xl disabled:opacity-50"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void send(text)
+        }}
+        className="pointer-events-auto flex items-center gap-2"
+      >
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onFocus={() => onFocusChange(true)}
+          onBlur={() => onFocusChange(false)}
+          maxLength={REPLY_MAX}
+          placeholder={`Responder a ${name}…`}
+          aria-label={`Responder a la historia de ${name}`}
+          autoComplete="off"
+          className="min-w-0 flex-1 rounded-full border border-white/70 bg-black/35 px-4 py-2.5 text-sm text-white outline-none backdrop-blur-sm placeholder:text-white/80"
+        />
+        <button
+          type="submit"
+          aria-label="Enviar respuesta"
+          disabled={!text.trim() || sending}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-black disabled:opacity-40"
+        >
+          {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+        </button>
+      </form>
+    </div>
   )
 }

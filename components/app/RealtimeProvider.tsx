@@ -11,6 +11,8 @@ export const REALTIME_EVENTS = {
   typing: 'cecify:typing',
   match: 'cecify:match',
   photoLike: 'cecify:photo-like',
+  photoComment: 'cecify:photo-comment',
+  storyReply: 'cecify:story-reply',
   read: 'cecify:read', // la otra persona leyo mis mensajes ("Visto")
 } as const
 
@@ -80,6 +82,15 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       showToast({ title: `A ${data.name} le gustó tu foto`, hint: 'Ver el muro', href: '/photos' })
     }
 
+    const onPhotoComment = (data: { name: string; preview: string }) => {
+      emit(REALTIME_EVENTS.photoComment, data)
+      showToast({ title: `${data.name} comentó tu foto`, hint: data.preview, href: '/photos' })
+    }
+    const onStoryReply = (data: { name: string; preview: string }) => {
+      emit(REALTIME_EVENTS.storyReply, data)
+      showToast({ title: `${data.name} respondió a tu historia`, hint: data.preview, href: '/photos' })
+    }
+
     socket.on('ready', onReady)
     socket.on('disconnect', onDisconnect)
     socket.on('connect_error', onDisconnect)
@@ -88,6 +99,8 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
     socket.on('messages:read', onRead)
     socket.on('match:created', onMatch)
     socket.on('photo:liked', onPhotoLike)
+    socket.on('photo:commented', onPhotoComment)
+    socket.on('story:replied', onStoryReply)
 
     return () => {
       socket.off('ready', onReady)
@@ -98,6 +111,8 @@ export default function RealtimeProvider({ children }: { children: React.ReactNo
       socket.off('messages:read', onRead)
       socket.off('match:created', onMatch)
       socket.off('photo:liked', onPhotoLike)
+      socket.off('photo:commented', onPhotoComment)
+      socket.off('story:replied', onStoryReply)
       disconnectSocket()
     }
   }, [refreshUnread])
