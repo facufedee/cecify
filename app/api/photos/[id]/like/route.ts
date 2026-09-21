@@ -7,7 +7,7 @@ import { UUID_RE } from '@/lib/validators'
 
 // Alterna el "me gusta" del usuario en la foto y devuelve el estado real
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const { id } = await params

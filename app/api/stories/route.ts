@@ -8,7 +8,7 @@ const CAPTION_MAX = 150
 
 // Sin parametros: los anillos (un autor por renglon). Con ?author=<id>: sus historias vigentes.
 export async function GET(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const author = new URL(req.url).searchParams.get('author')
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
 // Publica una foto ya subida con /api/profiles/photo como historia (dura 24 h)
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`story-post:${auth.userId}`, 20, 10 * 60_000)

@@ -27,7 +27,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 | 14 | Baja | README genérico de Next; la guía inicial quedó desactualizada (Next 14, JWT en localStorage) | `README.md` |
 
 **Resueltos en la Fase 0:** #1, #2, #6, #7, #9, #11, #12, #13, #14. **Parcial:** #8 (`UUID_RE` ya es compartido; el refactor de `lib/db.ts` sigue en 2.5).
-**Resueltos en la Fase 1:** #3 (panel de administración y moderación), #4 (editar perfil), #5 (bloquear/reportar/deshacer match). **Pendientes:** #10 (renovar sesión).
+**Resueltos en la Fase 1:** #3 (panel de administración y moderación), #4 (editar perfil), #5 (bloquear/reportar/deshacer match). **Resuelto en la Fase 2:** #10 (renovar sesión).
 
 ## Fases
 
@@ -48,7 +48,7 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 ### Fase 2 — Pulido
 - [ ] 2.1 Chat: cargar mensajes anteriores y "visto"
 - [ ] 2.2 Notificaciones push (Web Push) para mensajes y matches
-- [ ] 2.3 Renovación de sesión (`/api/auth/refresh`) y cierre de sesión en todos los dispositivos
+- [x] 2.3 Renovación de sesión (`/api/auth/refresh`), cierre de sesión en todos los dispositivos y sesiones revocables por un admin
 - [ ] 2.4 Muro: aviso de comentarios, recorte de foto al subir, respuestas a historias
 - [ ] 2.5 Refactor de `lib/db.ts` en módulos por dominio y una sola forma de llamar a la base
 - [ ] 2.6 Accesibilidad (foco, contraste, `prefers-reduced-motion`) y revisión en varios tamaños de pantalla
@@ -64,7 +64,8 @@ muro de fotos estilo Instagram (likes, comentarios, perfiles) · historias de 24
 - **Roles:** `guest` (invitado), `admin` (modera, carga invitados, ve reportes) y `superadmin` (lo mismo + nombrar/quitar admins; los novios). Siempre tiene que quedar un superadmin. El rol se lee de la base en cada pedido, no del token.
 - **Enlace de invitación:** email y código van en el fragmento (`#`), que el navegador no manda al servidor; así no quedan en logs ni en el "referrer". La pantalla de login lo lee, lo borra de la barra y entra sola; si el código no sirve, muestra el formulario con los datos cargados. Quien tenga el enlace tiene acceso, igual que con el código. El QR se genera en el navegador (nada sale a servicios externos).
 - **Panel:** admin y superadmin ven todo lo mismo, salvo dos cosas que son solo del superadmin: cambiar roles y leer la copia de una conversación reportada (es lo más privado que se guarda). Un admin no se puede eliminar como invitado: primero se le quita el rol.
-- **Eliminar un invitado** borra su cuenta y todo lo suyo (perfil, fotos, comentarios, historias, matches y chats). No puede volver a iniciar sesión, y la app lo saca al recargar (`/api/profiles/me` le responde 401). **Limitación:** el token que ya tenía sigue leyendo el muro, las historias y los matches hasta que vence (12 h) y no puede escribir nada; se cierra del todo con la 2.3 (revocar sesiones). Los archivos de las fotos quedan huérfanos en el storage hasta la 3.3.
+- **Eliminar un invitado** borra su cuenta y todo lo suyo (perfil, fotos, comentarios, historias, matches y chats) y su token deja de servir en todo al instante. Los archivos de las fotos quedan huérfanos en el storage hasta la 3.3.
+- **Sesiones:** el token dura 12 h y la app lo renueva sola mientras se usa (cuando faltan menos de 8 h), hasta un tope de 72 h desde que la persona entró de verdad. Lleva una *versión de sesión*: cerrar sesión en todos los dispositivos (o que un admin cierre las de alguien) la sube en la base y todos los tokens anteriores dejan de servir. Cada pedido comprueba en la base que el usuario exista y que la versión coincida (con una caché de 10 s por instancia; al revocar se olvida enseguida en la instancia que atiende el pedido, en otras puede tardar hasta 10 s). Los tokens emitidos antes de este cambio siguen valiendo. **Limitación:** el servidor de sockets solo verifica la firma del token, así que alguien con la sesión revocada puede seguir recibiendo avisos en tiempo real de sus propios chats hasta que el token venza (12 h); no puede leer ni escribir nada por la API.
 - **Modo "solo compartir momentos":** el perfil no aparece en Descubrir, no puede dar likes ni recibir matches nuevos y no ve las pestañas Descubrir/Matches (si ya tenía matches, la pestaña Matches se queda). Muro e historias funcionan igual. Se puede cambiar cuando quiera desde Editar perfil.
 - **Bloqueo:** bloquear oculta a la persona en Descubrir, el muro y el chat, y deshace el match. Es unilateral y silencioso.
 - **Reportes:** los ve el admin en el panel; no se avisa al reportado.

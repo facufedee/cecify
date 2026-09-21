@@ -254,7 +254,7 @@ function EditGuestModal({
   const [role, setRole] = useState<Role>(guest.role ?? 'guest')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<'code' | 'delete' | null>(null)
+  const [confirm, setConfirm] = useState<'code' | 'delete' | 'sessions' | null>(null)
 
   const run = async (label: string, fn: () => Promise<void>) => {
     setBusy(label)
@@ -339,6 +339,11 @@ function EditGuestModal({
               <Mail size={15} /> Enviar por email
             </a>
           </div>
+          {guest.userId && (
+            <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
+              Cerrar sus sesiones abiertas
+            </button>
+          )}
         </div>
 
         {isSuper && guest.userId && (
@@ -396,6 +401,18 @@ function EditGuestModal({
             setCode(r.code)
             onChanged()
             notify('Código nuevo generado')
+          }}
+        />
+      )}
+      {confirm === 'sessions' && (
+        <ConfirmDialog
+          title={`Cerrar las sesiones de ${guest.name}`}
+          message="Queda afuera en todos sus dispositivos. Puede volver a entrar con su enlace o su código; si querés que no pueda, generale un código nuevo."
+          confirmLabel="Cerrar sesiones"
+          onClose={() => setConfirm(null)}
+          onConfirm={async () => {
+            await adminJson(`/api/admin/guests/${guest.id}/revoke`, { method: 'POST' })
+            notify('Sesiones cerradas')
           }}
         />
       )}

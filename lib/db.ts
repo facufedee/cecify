@@ -1,8 +1,9 @@
 import { supabaseServer } from '@/lib/supabase'
 import type { LookingFor, Profile, ProfileInput, Side } from '@/lib/profile-schema'
 import type { Role } from '@/lib/roles'
+import { forgetSession } from '@/lib/session'
 
-export type DbUser = { id: string; email: string; role: Role }
+export type DbUser = { id: string; email: string; role: Role; sessionVersion: number }
 
 // Solo en desarrollo: nunca se usa la base local en produccion
 const useLocal = process.env.LOCAL_DB === '1' && process.env.NODE_ENV !== 'production'
@@ -65,22 +66,41 @@ export const findGuest = async (email: string, code: string) => {
 export const upsertUser = async (email: string): Promise<DbUser> => {
   if (useLocal) {
     const db = await localDb()
-    const { rows } = await db.query<DbUser>(
+    const { rows } = await db.query<Omit<DbUser, 'sessionVersion'> & { session_version: number }>(
       `insert into users (email) values ($1)
        on conflict (email) do update set email = excluded.email
-       returning id, email, role`,
+       returning id, email, role, session_version`,
       [email]
     )
-    return rows[0]
+    const { session_version, ...user } = rows[0]
+    return { ...user, sessionVersion: session_version }
   }
 
   const { data, error } = await supabaseServer()
     .from('users')
     .upsert({ email }, { onConflict: 'email' })
-    .select('id, email, role')
+    .select('id, email, role, session_version')
     .single()
   if (error) throw error
-  return data as DbUser
+  return {
+    id: data.id as string,
+    email: data.email as string,
+    role: data.role as Role,
+    sessionVersion: data.session_version as number,
+  }
+}
+
+// Version de sesion y rol actuales (null = el usuario ya no existe). Lo usa getAuth en cada pedido.
+export const getSessionInfo = async (userId: string): Promise<{ version: number; role: Role } | null> => {
+  const [r] = await callFn<{ out_version: number; out_role: Role }>('get_session_info', { p_user: userId })
+  return r ? { version: r.out_version, role: r.out_role } : null
+}
+
+// Cierra todas las sesiones de la persona (en todos los dispositivos). Devuelve la version nueva.
+export const revokeSessions = async (userId: string): Promise<number | null> => {
+  const [r] = await callFn<{ out_version: number }>('revoke_sessions', { p_user: userId })
+  forgetSession(userId)
+  return r?.out_version ?? null
 }
 
 // Rol actual (siempre desde la base: el del token puede estar desactualizado hasta 12 h)

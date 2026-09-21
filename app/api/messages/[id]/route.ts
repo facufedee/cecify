@@ -11,7 +11,7 @@ const parseDate = (v: string | null) => {
 // Mensajes de una conversacion + datos de la otra persona (incluye su contacto: ya hay match).
 // ?after=<iso> devuelve solo los nuevos (polling); ?before=<iso> pagina hacia atras.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const { id } = await params

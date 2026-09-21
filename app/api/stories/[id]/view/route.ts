@@ -5,7 +5,7 @@ import { UUID_RE } from '@/lib/validators'
 
 // Registra que el usuario vio la historia (idempotente; ignora las propias y las vencidas)
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const { id } = await params

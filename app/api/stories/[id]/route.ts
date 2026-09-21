@@ -5,7 +5,7 @@ import { UUID_RE } from '@/lib/validators'
 
 // Solo el autor puede borrar su historia
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   if (!rateLimit(`story-delete:${auth.userId}`, 30, 60000).ok) {

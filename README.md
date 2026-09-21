@@ -86,6 +86,9 @@ Decisiones de diseño que conviene conocer:
   (`requireRole` en `lib/api-auth.ts`), no del token. El *modo* lo elige cada invitado: quien elige solo muro e historias
   (`wants_match = false`) queda fuera de Descubrir y de los matches; lo aplica SQL (`discover_profiles`, `record_swipe`), no
   solo la pantalla. Solo un superadmin cambia roles (`set_user_role`) y siempre queda al menos uno.
+- **Sesiones revocables:** el JWT lleva una versión de sesión (`users.session_version`) y `getAuth` la compara con la base en
+  cada pedido (caché de 10 s). Se renueva solo con `/api/auth/refresh` y se cierra en todos los dispositivos con
+  `/api/auth/logout-all` o desde el panel. Toda ruta nueva tiene que usar `await getAuth(req)`.
 - **Invitaciones:** cada invitado puede entrar con un enlace o un QR (`/login#e=email&c=codigo`). El panel imprime las
   tarjetas (8 por hoja A4, con el QR) desde *Invitaciones*, y en *Invitados* se copia el enlace o se abre un correo listo
   para enviar. Antes de imprimir hay que poner en esa pantalla la dirección **pública** de la app.

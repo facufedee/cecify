@@ -4,7 +4,7 @@ import { markRead } from '@/lib/db'
 import { UUID_RE } from '@/lib/validators'
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   if (!rateLimit(`message-read:${auth.userId}`, 120, 60000).ok) {

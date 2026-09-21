@@ -5,7 +5,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { isOwnPhotoUrl } from '@/lib/storage'
 
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`profile:${auth.userId}`, 10, 60_000)

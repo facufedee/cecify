@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { authFetch } from '@/lib/client-auth'
+import { authFetch, refreshSessionIfNeeded } from '@/lib/client-auth'
 import type { Profile } from '@/lib/profile-schema'
 import type { Role } from '@/lib/roles'
 
@@ -50,6 +50,18 @@ export default function MeProvider({ children }: { children: React.ReactNode }) 
       cancelled = true
     }
   }, [fetchMe])
+
+  // Renueva la sesion mientras la app esta abierta: al entrar, al volver a la pestana y cada 15 minutos
+  useEffect(() => {
+    void refreshSessionIfNeeded()
+    const onVisible = () => document.visibilityState === 'visible' && void refreshSessionIfNeeded()
+    document.addEventListener('visibilitychange', onVisible)
+    const timer = setInterval(() => void refreshSessionIfNeeded(), 15 * 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(timer)
+    }
+  }, [])
 
   const value = useMemo(() => ({ me, reload }), [me, reload])
   return <MeContext.Provider value={value}>{children}</MeContext.Provider>

@@ -4,7 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { isUuid } from '@/lib/validators'
 
 export async function GET(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   try {
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
 // Bloquea a un invitado: se deshace el match y dejan de verse en Descubrir, el muro y las historias
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   if (!rateLimit(`block:${auth.userId}`, 20, 60_000).ok) {

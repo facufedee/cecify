@@ -7,7 +7,7 @@ import { UUID_RE } from '@/lib/validators'
 // Perfiles todavia no swipeados (los excluye el servidor). ?exclude=id1,id2 evita repetir
 // los que el cliente ya tiene en mano pero aun no swipeo.
 export async function GET(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`discover:${auth.userId}`, 60, 60_000)

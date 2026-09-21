@@ -8,7 +8,7 @@ const CAPTION_MAX = 300
 
 // Feed (mas nuevas primero). ?before=<iso> pagina; ?author=<userId> arma la grilla de un invitado.
 export async function GET(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const params = new URL(req.url).searchParams
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
 // Publica una foto ya subida con /api/profiles/photo
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`photo-post:${auth.userId}`, 20, 10 * 60_000)

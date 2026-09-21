@@ -4,7 +4,7 @@ import { UUID_RE } from '@/lib/validators'
 
 // Quien vio la historia. Solo responde con datos si la historia es del usuario que pregunta.
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const { id } = await params

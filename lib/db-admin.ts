@@ -3,6 +3,7 @@
 import { callFn, iso } from '@/lib/db'
 import type { Side } from '@/lib/profile-schema'
 import type { Role } from '@/lib/roles'
+import { clearSessionCache, forgetSession } from '@/lib/session'
 
 type Ts = string | Date
 
@@ -134,6 +135,20 @@ export const adminDeleteGuest = async (actorId: string, guestId: string): Promis
     p_actor: actorId,
     p_guest: guestId,
   })
+  // La funcion no dice a quien borro: se olvidan todas las sesiones en cache para que su token deje de servir ya
+  if (r?.out_status === 'ok') clearSessionCache()
+  return r?.out_status ?? 'forbidden'
+}
+
+export type RevokeSessionsStatus = 'ok' | 'forbidden' | 'not_found' | 'no_account'
+
+// Cierra las sesiones de un invitado (en todos sus dispositivos)
+export const adminRevokeSessions = async (actorId: string, guestId: string): Promise<RevokeSessionsStatus> => {
+  const [r] = await callFn<{ out_status: RevokeSessionsStatus; out_user: string | null }>('admin_revoke_sessions', {
+    p_actor: actorId,
+    p_guest: guestId,
+  })
+  if (r?.out_user) forgetSession(r.out_user)
   return r?.out_status ?? 'forbidden'
 }
 

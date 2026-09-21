@@ -5,7 +5,7 @@ import { isUuid } from '@/lib/validators'
 
 // Deshace el match (por id de conversacion): desaparece el chat para ambos y no vuelven a aparecer en Descubrir
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   if (!rateLimit(`unmatch:${auth.userId}`, 20, 60_000).ok) {

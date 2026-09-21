@@ -6,7 +6,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { UUID_RE } from '@/lib/validators'
 
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`swipe:${auth.userId}`, 30, 60_000)

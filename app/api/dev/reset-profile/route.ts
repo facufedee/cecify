@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return new Response(null, { status: 404 })
   }
 
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const param = new URL(req.url).searchParams.get('only')

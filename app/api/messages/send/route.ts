@@ -9,7 +9,7 @@ import { UUID_RE } from '@/lib/validators'
 const MAX_LENGTH = 1000
 
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`message:${auth.userId}`, 100, 60_000)

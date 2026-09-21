@@ -2,7 +2,7 @@ import { getAuth, unauthorized } from '@/lib/api-auth'
 import { unreadTotal } from '@/lib/db'
 
 export async function GET(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   try {

@@ -35,6 +35,8 @@ export const describeAction = (action: string, details: Record<string, unknown> 
       return `agregó al invitado ${str(d.email)}`
     case 'guest_new_code':
       return 'generó un código nuevo para un invitado'
+    case 'sessions_revoke':
+      return 'cerró las sesiones abiertas de un invitado'
     case 'guest_delete':
       return `eliminó al invitado ${str(d.name) || str(d.email)}`
     case 'report_reviewed':

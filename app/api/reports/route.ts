@@ -22,7 +22,7 @@ const invalid = (error: string, status = 400) => Response.json({ error }, { stat
 // Reporta a un invitado. El servidor guarda una COPIA de lo reportado (no confia en lo que mande el
 // cliente), asi el admin lo ve aunque despues se borre el mensaje, la foto o la historia.
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   // Limite holgado para cualquier pedido (validaciones incluidas); el estricto va solo a los que se guardan

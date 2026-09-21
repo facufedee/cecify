@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     const user = await upsertUser(normalizedEmail)
-    const token = generateToken(user.id, user.role)
+    const token = generateToken(user.id, user.role, { version: user.sessionVersion })
     return Response.json({
       token,
       user: { id: user.id, email: user.email, role: user.role },

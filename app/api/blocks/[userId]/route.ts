@@ -4,7 +4,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { isUuid } from '@/lib/validators'
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ userId: string }> }) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   if (!rateLimit(`block:${auth.userId}`, 20, 60_000).ok) {

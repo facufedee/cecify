@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { AnimatePresence } from 'framer-motion'
 import { Loader2, X } from 'lucide-react'
 import { useMe } from '@/components/app/MeProvider'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
 import ModeFields from '@/components/profile/ModeFields'
-import { authFetch, compressImage } from '@/lib/client-auth'
+import ActionSheet from '@/components/wall/ActionSheet'
+import { authFetch, clearToken, compressImage } from '@/lib/client-auth'
+import { disconnectSocket } from '@/lib/socket'
 import {
   AGE_MAX,
   AGE_MIN,
@@ -30,6 +33,7 @@ export default function EditProfilePage() {
   const [ready, setReady] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmLogoutAll, setConfirmLogoutAll] = useState(false)
 
   const [side, setSide] = useState<Side | null>(null)
   const [wantsMatch, setWantsMatch] = useState(true)
@@ -113,6 +117,20 @@ export default function EditProfilePage() {
         interests.length > 0 &&
         (instagram.trim() !== '' || whatsapp.trim() !== ''))) &&
     uploading === null
+
+  const logoutAll = async () => {
+    setConfirmLogoutAll(false)
+    setError(null)
+    try {
+      const res = await authFetch('/api/auth/logout-all', { method: 'POST' })
+      if (!res.ok) throw new Error()
+      disconnectSocket()
+      clearToken()
+      router.replace('/login')
+    } catch {
+      setError('No se pudo cerrar las sesiones, probá de nuevo')
+    }
+  }
 
   const save = async () => {
     if (!valid || saving) return
@@ -319,12 +337,32 @@ export default function EditProfilePage() {
           Cuentas bloqueadas
         </Link>
 
+        <button
+          type="button"
+          onClick={() => setConfirmLogoutAll(true)}
+          className="block w-full text-center text-sm font-semibold text-ig-like"
+        >
+          Cerrar sesión en todos los dispositivos
+        </button>
+
         {error && (
           <p role="alert" className="text-center text-sm text-ig-like">
             {error}
           </p>
         )}
       </div>
+
+      <AnimatePresence>
+        {confirmLogoutAll && (
+          <ActionSheet
+            key="logout-all"
+            title="¿Cerrar sesión en todos los dispositivos?"
+            message="Vas a tener que volver a entrar con tu enlace o tu código, también en este dispositivo."
+            onClose={() => setConfirmLogoutAll(false)}
+            actions={[{ label: 'Cerrar todas las sesiones', destructive: true, onClick: logoutAll }]}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

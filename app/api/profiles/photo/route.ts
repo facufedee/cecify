@@ -7,7 +7,7 @@ import { savePhoto } from '@/lib/storage'
 const MAX_BYTES = 4 * 1024 * 1024
 
 export async function POST(req: Request) {
-  const auth = getAuth(req)
+  const auth = await getAuth(req)
   if (!auth) return unauthorized()
 
   const limit = rateLimit(`photo:${auth.userId}`, 20, 10 * 60_000)
