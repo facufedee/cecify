@@ -8,6 +8,7 @@ import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Mod
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
+import { contactLabel, phoneFromEventEmail } from '@/lib/event'
 import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
@@ -44,14 +45,14 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
   const [side, setSide] = useState<Side | ''>('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saved, setSaved] = useState<{ code: string; created: boolean; email: string } | null>(null)
+  const [saved, setSaved] = useState<{ code: string | null; created: boolean; email: string } | null>(null)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
     try {
-      const r = await adminJson<{ code: string; created: boolean }>('/api/admin/guests', {
+      const r = await adminJson<{ code: string | null; created: boolean }>('/api/admin/guests', {
         method: 'POST',
         json: { name, email, ...(side ? { side } : {}) },
       })
@@ -76,9 +77,11 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
             <p className="mt-1 font-mono text-2xl font-semibold tracking-widest text-brand-dark">{prettyCode(saved.code)}</p>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" className={btn.secondary} onClick={() => copy(prettyCode(saved.code))}>
-              <Copy size={15} /> Copiar código
-            </button>
+            {saved.code && (
+              <button type="button" className={btn.secondary} onClick={() => copy(prettyCode(saved.code))}>
+                <Copy size={15} /> Copiar código
+              </button>
+            )}
             <button type="button" className={btn.primary} onClick={onClose}>
               Listo
             </button>
@@ -121,7 +124,7 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
 type ImportResult = {
   created: number
   updated: number
-  rows: { name: string; email: string; code: string; created: boolean }[]
+  rows: { name: string; email: string; code: string | null; created: boolean }[]
   errors: { line: number; message: string }[]
 }
 
@@ -289,7 +292,7 @@ function EditGuestModal({
   return (
     <Modal title="Editar invitado" onClose={onClose}>
       <div className="space-y-5 text-sm">
-        <p className="text-neutral-500">{guest.email}</p>
+        <p className="text-neutral-500">{contactLabel(guest.email)}</p>
 
         <label className="block">
           <span className="mb-1 block font-medium">Nombre</span>
@@ -300,51 +303,65 @@ function EditGuestModal({
           <SideSelect value={side} onChange={setSide} />
         </label>
 
-        <div>
-          <span className="mb-1 block font-medium">Código de acceso</span>
-          <div className="flex items-center gap-2">
-            <span className="flex-1 rounded-lg bg-neutral-100 px-3 py-2 font-mono tracking-widest">{prettyCode(code)}</span>
-            <button
-              type="button"
-              className={btn.secondary}
-              onClick={async () => notify((await copy(prettyCode(code))) ? 'Código copiado' : 'No se pudo copiar')}
-            >
-              <Copy size={15} /> Copiar
-            </button>
+        {code === null ? (
+          <div>
+            <span className="mb-1 block font-medium">Código de acceso</span>
+            <p className="text-xs text-neutral-500">
+              Es {ROLE_LABELS[role].toLowerCase()}: solo un superadministrador puede ver su código, generarle uno nuevo o cerrar sus sesiones.
+            </p>
           </div>
-          <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('code')}>
-            Generar un código nuevo
-          </button>
-        </div>
+        ) : (
+          <>
+            <div>
+              <span className="mb-1 block font-medium">Código de acceso</span>
+              <div className="flex items-center gap-2">
+                <span className="flex-1 rounded-lg bg-neutral-100 px-3 py-2 font-mono tracking-widest">{prettyCode(code)}</span>
+                <button
+                  type="button"
+                  className={btn.secondary}
+                  onClick={async () => notify((await copy(prettyCode(code))) ? 'Código copiado' : 'No se pudo copiar')}
+                >
+                  <Copy size={15} /> Copiar
+                </button>
+              </div>
+              <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('code')}>
+                Generar un código nuevo
+              </button>
+            </div>
 
-        <div>
-          <span className="mb-1 block font-medium">Enlace de invitación</span>
-          <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={btn.secondary}
-              onClick={async () =>
-                notify(
-                  (await copy(inviteUrl(window.location.origin, guest.email, code))) ? 'Enlace copiado' : 'No se pudo copiar'
-                )
-              }
-            >
-              <Copy size={15} /> Copiar enlace
-            </button>
-            <a
-              className={btn.secondary}
-              href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
-            >
-              <Mail size={15} /> Enviar por email
-            </a>
-          </div>
-          {guest.userId && (
-            <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
-              Cerrar sus sesiones abiertas
-            </button>
-          )}
-        </div>
+            <div>
+              <span className="mb-1 block font-medium">Enlace de invitación</span>
+              <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={btn.secondary}
+                  onClick={async () =>
+                    notify(
+                      (await copy(inviteUrl(window.location.origin, guest.email, code))) ? 'Enlace copiado' : 'No se pudo copiar'
+                    )
+                  }
+                >
+                  <Copy size={15} /> Copiar enlace
+                </button>
+                {/* Quien entro con el QR de la fiesta no tiene email real */}
+                {!phoneFromEventEmail(guest.email) && (
+                  <a
+                    className={btn.secondary}
+                    href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
+                  >
+                    <Mail size={15} /> Enviar por email
+                  </a>
+                )}
+              </div>
+              {guest.userId && (
+                <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
+                  Cerrar sus sesiones abiertas
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
         {isSuper && guest.userId && (
           <label className="block">
@@ -397,7 +414,7 @@ function EditGuestModal({
           confirmLabel="Generar código"
           onClose={() => setConfirm(null)}
           onConfirm={async () => {
-            const r = await adminJson<{ code: string }>(`/api/admin/guests/${guest.id}`, { method: 'PATCH', json: { newCode: true } })
+            const r = await adminJson<{ code: string | null }>(`/api/admin/guests/${guest.id}`, { method: 'PATCH', json: { newCode: true } })
             setCode(r.code)
             onChanged()
             notify('Código nuevo generado')
@@ -561,7 +578,7 @@ function GuestsInner() {
             <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
               <div className="min-w-0 flex-1 basis-48">
                 <p className="truncate font-medium">{g.name}</p>
-                <p className="truncate text-sm text-neutral-500">{g.email}</p>
+                <p className="truncate text-sm text-neutral-500">{contactLabel(g.email)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {g.role && g.role !== 'guest' && <Badge tone="blue">{ROLE_LABELS[g.role]}</Badge>}

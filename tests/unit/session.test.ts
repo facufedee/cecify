@@ -42,6 +42,17 @@ describe('token', () => {
     expect(verifyToken(jwt.sign({ userId: 'u1' }, 'otro-secreto'))).toBeNull()
     expect(verifyToken('basura')).toBeNull()
   })
+
+  it('solo acepta HS256 (ni otro algoritmo con el mismo secreto ni tokens sin firma)', () => {
+    expect(verifyToken(jwt.sign({ userId: 'u1' }, 'secreto-de-prueba', { algorithm: 'HS512' }))).toBeNull()
+    const [, body] = jwt.sign({ userId: 'u1' }, 'secreto-de-prueba').split('.')
+    const unsigned = `${Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url')}.${body}.`
+    expect(verifyToken(unsigned)).toBeNull()
+  })
+
+  it('rechaza un token bien firmado sin userId', () => {
+    expect(verifyToken(jwt.sign({ role: 'admin' }, 'secreto-de-prueba'))).toBeNull()
+  })
 })
 
 describe('cache de sesion', () => {

@@ -37,5 +37,5 @@ export const formatShortAgo = (iso: string) => {
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
 }
 
-// Codigo de acceso legible: ABCD1234 -> ABCD-1234
-export const prettyCode = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`
+// Codigo de acceso legible: ABCD1234 -> ABCD-1234. null = oculto (cuenta con rol, solo la ve un superadmin)
+export const prettyCode = (code: string | null) => (code === null ? 'Oculto' : `${code.slice(0, 4)}-${code.slice(4)}`)

@@ -1,12 +1,14 @@
 'use client'
 
 import { Camera, Heart } from 'lucide-react'
+import MatchPrefsFields from '@/components/profile/MatchPrefsFields'
 import {
   LOOKING_FOR,
   LOOKING_FOR_LABELS,
   SIDES,
   SIDE_LABELS,
   type LookingFor,
+  type MatchPrefs,
   type Side,
 } from '@/lib/profile-schema'
 
@@ -27,11 +29,13 @@ type Props = {
   onSide: (s: Side) => void
   onWantsMatch: (v: boolean) => void
   onLookingFor: (v: LookingFor[]) => void
+  prefs: MatchPrefs
+  onPrefs: (p: MatchPrefs) => void
 }
 
-// De parte de quien venis, si queres hacer match o solo usar el muro, y que buscas.
+// De parte de quien venis, si queres hacer match o solo usar el muro, que buscas y a quien (genero y edad).
 // Lo usan el onboarding y la edicion del perfil.
-export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWantsMatch, onLookingFor }: Props) {
+export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWantsMatch, onLookingFor, prefs, onPrefs }: Props) {
   const toggleLooking = (v: LookingFor) =>
     onLookingFor(lookingFor.includes(v) ? lookingFor.filter((x) => x !== v) : [...lookingFor, v])
 
@@ -110,6 +114,8 @@ export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWan
           </div>
         </section>
       )}
+
+      {wantsMatch === true && <MatchPrefsFields prefs={prefs} onChange={onPrefs} />}
     </div>
   )
 }

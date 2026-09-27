@@ -1,5 +1,6 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { getUserContext } from '@/lib/db'
+import { phoneFromEventEmail } from '@/lib/event'
 
 export async function GET(req: Request) {
   const auth = await getAuth(req)
@@ -13,6 +14,7 @@ export async function GET(req: Request) {
       profile: ctx.profile,
       guestName: ctx.guestName,
       guestSide: ctx.guestSide, // lo que cargo el admin, para precargar el onboarding
+      guestPhone: phoneFromEventEmail(ctx.email), // entro con el QR de la fiesta: su WhatsApp para el contacto
       role: ctx.role,
       matchesCount: ctx.matchesCount,
     })

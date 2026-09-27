@@ -10,6 +10,25 @@ export type PushPayload = {
 
 export type PushSubscriptionJson = { endpoint: string; keys: { p256dh: string; auth: string } }
 
+// Servicios de push de los navegadores. El servidor le hace un POST al endpoint que manda el cliente:
+// sin esta lista, alguien podria registrar cualquier URL y usar el servidor para pegarle a otros sitios (SSRF).
+//   Chrome, Edge, Android, Opera, Samsung: fcm.googleapis.com · Firefox: updates.push.services.mozilla.com
+//   Safari / iPhone: web.push.apple.com · Windows: *.notify.windows.com
+const PUSH_HOSTS = ['fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com']
+const PUSH_HOST_SUFFIXES = ['.notify.windows.com', '.push.apple.com']
+
+export const isPushServiceUrl = (raw: string) => {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    return false
+  }
+  if (url.protocol !== 'https:' || url.port || url.username || url.password) return false
+  const host = url.hostname.toLowerCase()
+  return PUSH_HOSTS.includes(host) || PUSH_HOST_SUFFIXES.some((s) => host.endsWith(s))
+}
+
 const TITLE_MAX = 60
 const BODY_MAX = 120
 

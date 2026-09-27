@@ -1,5 +1,6 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
 import { deletePushSubscription, savePushSubscription } from '@/lib/db'
+import { isPushServiceUrl } from '@/lib/push'
 import { pushConfigured } from '@/lib/push-server'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -9,7 +10,7 @@ const parseSubscription = (raw: unknown) => {
   const { endpoint } = s
   const p256dh = s.keys?.p256dh
   const auth = s.keys?.auth
-  if (typeof endpoint !== 'string' || !endpoint.startsWith('https://') || endpoint.length > 2000) return null
+  if (typeof endpoint !== 'string' || endpoint.length > 2000 || !isPushServiceUrl(endpoint)) return null
   if (typeof p256dh !== 'string' || typeof auth !== 'string' || p256dh.length > 200 || auth.length > 100) return null
   return { endpoint, keys: { p256dh, auth } }
 }

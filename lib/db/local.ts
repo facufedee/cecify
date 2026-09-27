@@ -108,6 +108,31 @@ const seedRoles = async (db: PGlite) => {
   await db.query('insert into _local_migrations (name) values ($1)', [ROLES_SEED])
 }
 
+// Genero y a quien quiere conocer cada invitado demo (una sola vez), para ver el filtro de Descubrir.
+// Valentina (demo5) solo usa el muro: sin preferencias. Joaquin busca de 25 a 40.
+const PREFS_SEED = 'seed:prefs-v1'
+const DEMO_PREFS: [string, string | null, number | null, number | null][] = [
+  ['woman', 'men', 18, 99],
+  ['man', 'women', 18, 99],
+  ['woman', 'everyone', 18, 99],
+  ['man', 'women', 25, 40],
+  ['woman', null, null, null],
+  ['man', 'everyone', 18, 99],
+]
+
+const seedPrefs = async (db: PGlite) => {
+  const done = await db.query('select 1 from _local_migrations where name = $1', [PREFS_SEED])
+  if (done.rows.length > 0) return
+  for (const [i, [gender, interestedIn, min, max]] of DEMO_PREFS.entries()) {
+    await db.query(
+      `update profiles set gender = $2, interested_in = $3, pref_age_min = $4, pref_age_max = $5
+        where user_id = (select id from users where email = $1)`,
+      [`demo${i + 1}@demo.cecify.local`, gender, interestedIn, min, max]
+    )
+  }
+  await db.query('insert into _local_migrations (name) values ($1)', [PREFS_SEED])
+}
+
 // Fotos de ejemplo para el muro (una sola vez: queda registrado en _local_migrations)
 const WALL_SEED = 'seed:wall-v1'
 const WALL = [
@@ -274,6 +299,7 @@ const prepare = async (db: PGlite) => {
   )
   await seedDemos(db)
   await seedRoles(db)
+  await seedPrefs(db)
   await seedWall(db)
   await seedStories(db)
   return db

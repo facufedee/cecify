@@ -7,12 +7,17 @@ import { btn, Card, EmptyState, ErrorNote, inputClass, Spinner } from '@/compone
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
+import { phoneFromEventEmail } from '@/lib/event'
 import { inviteUrl } from '@/lib/invite'
 
 type Page = { guests: AdminGuest[]; total: number }
+// Invitado con codigo visible (a un admin no le llega el de las cuentas con rol)
+type InvitableGuest = AdminGuest & { code: string }
+// Quien entro con el QR de la fiesta no necesita tarjeta
+const hasCode = (g: AdminGuest): g is InvitableGuest => g.code !== null && !phoneFromEventEmail(g.email)
 
 // Tarjeta para imprimir: cabe 8 por hoja A4 (2 columnas x 4 filas)
-function InviteCard({ guest, url }: { guest: AdminGuest; url: string }) {
+function InviteCard({ guest, url }: { guest: InvitableGuest; url: string }) {
   return (
     <article className="flex break-inside-avoid gap-4 rounded-2xl border-2 border-brand/30 bg-cream p-4 print:h-[64mm] print:gap-3 print:rounded-xl print:p-3.5">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -65,7 +70,7 @@ export default function AdminInvitationsPage() {
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return (guests ?? []).filter(
+    return (guests ?? []).filter(hasCode).filter(
       (g) => (!onlyNew || !g.userId) && (!q || g.name.toLowerCase().includes(q) || g.email.includes(q))
     )
   }, [guests, query, onlyNew])

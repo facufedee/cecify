@@ -1,5 +1,5 @@
 // Perfiles
-import type { LookingFor, Profile, ProfileInput, Side } from '@/lib/profile-schema'
+import { AGE_MAX, AGE_MIN, type Gender, type InterestedIn, type LookingFor, type Profile, type ProfileInput, type Side } from '@/lib/profile-schema'
 import type { Role } from '@/lib/roles'
 import { callFn } from '@/lib/db/core'
 
@@ -18,6 +18,10 @@ type ProfileRow = {
   wants_match: boolean
   looking_for: LookingFor[] | null
   side: Side | null
+  gender: Gender | null
+  interested_in: InterestedIn | null
+  pref_age_min: number | null
+  pref_age_max: number | null
 }
 
 const toProfile = (r: ProfileRow): Profile => ({
@@ -34,6 +38,10 @@ const toProfile = (r: ProfileRow): Profile => ({
   wantsMatch: r.wants_match,
   lookingFor: r.looking_for ?? [],
   side: r.side,
+  gender: r.gender ?? null,
+  interestedIn: r.interested_in ?? null,
+  prefAgeMin: r.pref_age_min ?? AGE_MIN,
+  prefAgeMax: r.pref_age_max ?? AGE_MAX,
 })
 
 // Perfil propio + datos del invitado (para precargar el onboarding) + rol
@@ -72,6 +80,11 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
     p_wants_match: input.wantsMatch,
     p_looking_for: input.lookingFor,
     p_side: input.side,
+    // Quien solo usa el muro no filtra a nadie: sin preferencias guardadas
+    p_gender: input.gender,
+    p_interested_in: input.wantsMatch ? input.interestedIn : null,
+    p_pref_age_min: input.wantsMatch ? input.prefAgeMin : null,
+    p_pref_age_max: input.wantsMatch ? input.prefAgeMax : null,
   })
   return toProfile(r.out_profile)
 }

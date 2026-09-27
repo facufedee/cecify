@@ -1,4 +1,4 @@
-import { adminOnly, badRequest, serverError } from '@/lib/admin-api'
+import { adminOnly, badRequest, isInsufficientPrivilege, serverError } from '@/lib/admin-api'
 import { regenerateCode } from '@/lib/admin-guests'
 import { adminDeleteGuest, adminUpdateGuest } from '@/lib/db/admin'
 import { NAME_MAX, parseSide } from '@/lib/guests'
@@ -27,7 +27,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    let code: string | undefined
+    let code: string | null | undefined
     if (name !== undefined || side !== undefined) {
       const saved = await adminUpdateGuest(actor.userId, id, { name, side })
       if (!saved) return badRequest('Invitado no encontrado', 404)
@@ -41,6 +41,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (code === undefined) return badRequest('No hay nada para cambiar')
     return Response.json({ ok: true, code })
   } catch (error) {
+    if (isInsufficientPrivilege(error)) return badRequest('Solo un superadmin puede cambiar el código de un administrador', 403)
     return serverError('admin/guests/patch', error)
   }
 }

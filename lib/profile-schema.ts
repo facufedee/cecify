@@ -1,11 +1,25 @@
 // Reglas del perfil compartidas entre cliente (validacion inmediata) y servidor (la que vale).
 
 export const NAME_MAX = 100
-export const BIO_MAX = 100
+// Con los atajos de "Sobre vos" (me gusta..., hincha de...) 100 quedaba corto
+export const BIO_MAX = 150
 export const AGE_MIN = 18
 export const AGE_MAX = 99
 export const MAX_INTERESTS = 8
 export const MAX_EXTRA_PHOTOS = 3
+
+// Lo que se puede escribir en el campo de edad: solo digitos y como mucho 2 (no hay edades de 3 cifras)
+export const cleanAgeInput = (raw: string) => raw.replace(/\D/g, '').slice(0, 2)
+
+// Por que la edad no sirve (null = esta bien o todavia no escribio nada)
+export const ageProblem = (raw: string): string | null => {
+  if (!raw) return null
+  const n = Number(raw)
+  if (!Number.isInteger(n)) return 'Poné tu edad en números'
+  if (n < AGE_MIN) return `Tenés que tener al menos ${AGE_MIN} años`
+  if (n > AGE_MAX) return `La edad máxima es ${AGE_MAX}`
+  return null
+}
 
 export const INTERESTS = [
   'Música',
@@ -46,6 +60,24 @@ export const LOOKING_FOR_LABELS: Record<LookingFor, string> = {
   dance: 'Pareja de baile',
 }
 
+// Preferencias de match (solo para quien quiere conocer gente). Descubrir filtra en los dos sentidos.
+export const GENDERS = ['woman', 'man', 'nonbinary'] as const
+export type Gender = (typeof GENDERS)[number]
+export const GENDER_LABELS: Record<Gender, string> = { woman: 'Mujer', man: 'Hombre', nonbinary: 'No binario' }
+export const isGender = (v: unknown): v is Gender => typeof v === 'string' && (GENDERS as readonly string[]).includes(v)
+
+export const INTERESTED_IN = ['women', 'men', 'everyone'] as const
+export type InterestedIn = (typeof INTERESTED_IN)[number]
+export const INTERESTED_IN_LABELS: Record<InterestedIn, string> = { women: 'Mujeres', men: 'Hombres', everyone: 'Todos' }
+export const isInterestedIn = (v: unknown): v is InterestedIn =>
+  typeof v === 'string' && (INTERESTED_IN as readonly string[]).includes(v)
+
+// gender/interestedIn null = sin dato (perfiles viejos o solo muro). Rango por defecto: cualquier edad.
+export type MatchPrefs = { gender: Gender | null; interestedIn: InterestedIn | null; prefAgeMin: number; prefAgeMax: number }
+export const DEFAULT_PREFS: MatchPrefs = { gender: null, interestedIn: null, prefAgeMin: AGE_MIN, prefAgeMax: AGE_MAX }
+export const prefsComplete = (p: MatchPrefs) =>
+  p.gender !== null && p.interestedIn !== null && p.prefAgeMin >= AGE_MIN && p.prefAgeMax <= AGE_MAX && p.prefAgeMin <= p.prefAgeMax
+
 export type ContactMethods = { instagram?: string; whatsapp?: string }
 
 export type ProfileInput = {
@@ -62,7 +94,7 @@ export type ProfileInput = {
   wantsMatch: boolean
   lookingFor: LookingFor[]
   side: Side
-}
+} & MatchPrefs
 
 // side es null en perfiles anteriores a que se pidiera: se completa al editar
 export type Profile = Omit<ProfileInput, 'side'> & { id: string; userId: string; side: Side | null }
@@ -124,6 +156,29 @@ export const validateProfileInput = (body: unknown): Result => {
     lookingFor = raw as LookingFor[]
   }
 
+  // Quien conoce gente dice quien es y a quien busca; quien solo usa el muro no filtra a nadie
+  let prefs: MatchPrefs = DEFAULT_PREFS
+  if (wantsMatch) {
+    if (!isGender(b.gender)) return { ok: false, error: 'Contanos cómo te identificás' }
+    if (!isInterestedIn(b.interestedIn)) return { ok: false, error: 'Elegí a quién querés conocer' }
+    const min = b.prefAgeMin
+    const max = b.prefAgeMax
+    if (
+      typeof min !== 'number' ||
+      typeof max !== 'number' ||
+      !Number.isInteger(min) ||
+      !Number.isInteger(max) ||
+      min < AGE_MIN ||
+      max > AGE_MAX ||
+      min > max
+    ) {
+      return { ok: false, error: `El rango de edad tiene que ir de ${AGE_MIN} a ${AGE_MAX}, con el mínimo antes que el máximo` }
+    }
+    prefs = { gender: b.gender, interestedIn: b.interestedIn, prefAgeMin: min, prefAgeMax: max }
+  } else if (isGender(b.gender)) {
+    prefs = { ...DEFAULT_PREFS, gender: b.gender }
+  }
+
   // Intereses y contacto solo son obligatorios para quien participa del match
   const interests = Array.isArray(b.interests) ? b.interests : []
   const validInterests = new Set<string>(INTERESTS)
@@ -162,6 +217,7 @@ export const validateProfileInput = (body: unknown): Result => {
       visible: b.visible !== false,
       wantsMatch,
       lookingFor,
+      ...prefs,
       side: b.side,
       name,
       age,

@@ -19,6 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       case 'no_account':
         return badRequest('Todavía no inició sesión: no hay sesiones para cerrar', 409)
       default:
+        // tambien: un admin no puede cerrar las sesiones de otro admin ni de un superadmin
         return badRequest('No tenés permiso para esto', 403)
     }
   } catch (error) {
