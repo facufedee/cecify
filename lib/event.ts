@@ -2,8 +2,10 @@
 // El QR abre /entrar#k=<clave>. Igual que las invitaciones, la clave va en el FRAGMENTO (#): el navegador no la
 // manda al servidor, asi que no queda en logs ni en el "referrer".
 
-// Dominio reservado (RFC 2606): nunca recibe correo. Identifica las cuentas creadas con el QR de la fiesta.
+// Dominios reservados (RFC 2606): nunca reciben correo. Identifican las cuentas creadas con el QR de la fiesta,
+// segun con que dato entro la persona: <numero>@whatsapp.invalid o <usuario>@instagram.invalid
 export const EVENT_EMAIL_DOMAIN = 'whatsapp.invalid'
+export const INSTAGRAM_EMAIL_DOMAIN = 'instagram.invalid'
 
 // Un mismo numero escrito de distintas formas tiene que dar la misma cuenta:
 //   "11 5555-1234", "+54 11 5555 1234" y "+54 9 11 5555-1234" -> 5491155551234
@@ -24,6 +26,27 @@ export const phoneFromEventEmail = (email: string | null | undefined) => {
   return m ? m[1] : null
 }
 
+// Usuario de Instagram sin @ y en minusculas (Instagram no distingue mayusculas). null = no es un usuario valido.
+export const canonicalInstagram = (raw: string): string | null => {
+  const handle = raw
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '') // pegaron el link del perfil
+    .replace(/^@/, '')
+    .replace(/[/?].*$/, '')
+    .toLowerCase()
+  return /^[a-z0-9._]{1,30}$/.test(handle) ? handle : null
+}
+
+export const instagramEmail = (handle: string) => `${handle}@${INSTAGRAM_EMAIL_DOMAIN}`
+
+export const instagramFromEventEmail = (email: string | null | undefined) => {
+  const m = email?.match(/^([a-z0-9._]{1,30})@instagram\.invalid$/)
+  return m ? m[1] : null
+}
+
+// Cuenta creada con el QR de la fiesta (con cualquiera de los dos datos)
+export const isEventEmail = (email: string) => phoneFromEventEmail(email) !== null || instagramFromEventEmail(email) !== null
+
 // Para mostrar: 5491155551234 -> +54 9 11 5555-1234 (los argentinos); el resto con + adelante
 export const prettyPhone = (phone: string) => {
   const ar = phone.match(/^549(11|\d{3,4})(\d+)$/)
@@ -37,7 +60,9 @@ export const prettyPhone = (phone: string) => {
 // Como se muestra en el panel: el WhatsApp para quien entro con el QR, el email para el resto
 export const contactLabel = (email: string) => {
   const phone = phoneFromEventEmail(email)
-  return phone ? `WhatsApp ${prettyPhone(phone)}` : email
+  if (phone) return `WhatsApp ${prettyPhone(phone)}`
+  const ig = instagramFromEventEmail(email)
+  return ig ? `Instagram @${ig}` : email
 }
 
 export const eventJoinUrl = (origin: string, key: string) => `${origin.replace(/\/+$/, '')}/entrar#k=${encodeURIComponent(key)}`

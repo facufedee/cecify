@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalPhone, contactLabel, eventEmail, eventJoinUrl, parseEventHash, phoneFromEventEmail, prettyPhone } from '@/lib/event'
+import {
+  canonicalInstagram,
+  canonicalPhone,
+  contactLabel,
+  eventEmail,
+  eventJoinUrl,
+  instagramEmail,
+  instagramFromEventEmail,
+  isEventEmail,
+  parseEventHash,
+  phoneFromEventEmail,
+  prettyPhone,
+} from '@/lib/event'
 
 describe('canonicalPhone', () => {
   it('el mismo celular argentino escrito de distintas formas da el mismo numero (la misma cuenta)', () => {
@@ -19,6 +31,30 @@ describe('canonicalPhone', () => {
     expect(canonicalPhone('1234')).toBeNull()
     expect(canonicalPhone('hola')).toBeNull()
     expect(canonicalPhone('1'.repeat(16))).toBeNull()
+  })
+})
+
+describe('canonicalInstagram', () => {
+  it('el mismo usuario escrito de distintas formas da la misma cuenta', () => {
+    for (const raw of ['@Ana.Perez', 'ana.perez', ' ana.perez ', 'https://www.instagram.com/ana.perez/', 'instagram.com/Ana.Perez?igsh=abc']) {
+      expect(canonicalInstagram(raw), raw).toBe('ana.perez')
+    }
+  })
+
+  it('rechaza lo que no es un usuario', () => {
+    expect(canonicalInstagram('')).toBeNull()
+    expect(canonicalInstagram('@')).toBeNull()
+    expect(canonicalInstagram('con espacios')).toBeNull()
+    expect(canonicalInstagram('x'.repeat(31))).toBeNull()
+  })
+
+  it('email interno y como se muestra en el panel', () => {
+    expect(instagramEmail('ana.perez')).toBe('ana.perez@instagram.invalid')
+    expect(instagramFromEventEmail('ana.perez@instagram.invalid')).toBe('ana.perez')
+    expect(contactLabel('ana.perez@instagram.invalid')).toBe('Instagram @ana.perez')
+    expect(isEventEmail('ana.perez@instagram.invalid')).toBe(true)
+    expect(isEventEmail('5491155551234@whatsapp.invalid')).toBe(true)
+    expect(isEventEmail('ana@x.com')).toBe(false)
   })
 })
 

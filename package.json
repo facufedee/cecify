@@ -9,6 +9,8 @@
     "lint": "eslint",
     "import:guests": "node --env-file=.env.local scripts/import-guests.mjs",
     "set:role": "node --env-file=.env.local scripts/set-role.mjs",
+    "create:admin": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/create-admin.mjs",
+    "check:supabase": "node --env-file-if-exists=.env.local scripts/check-supabase.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

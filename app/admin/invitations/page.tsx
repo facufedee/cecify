@@ -7,14 +7,14 @@ import { btn, Card, EmptyState, ErrorNote, inputClass, Spinner } from '@/compone
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
-import { phoneFromEventEmail } from '@/lib/event'
+import { isEventEmail } from '@/lib/event'
 import { inviteUrl } from '@/lib/invite'
 
 type Page = { guests: AdminGuest[]; total: number }
 // Invitado con codigo visible (a un admin no le llega el de las cuentas con rol)
 type InvitableGuest = AdminGuest & { code: string }
 // Quien entro con el QR de la fiesta no necesita tarjeta
-const hasCode = (g: AdminGuest): g is InvitableGuest => g.code !== null && !phoneFromEventEmail(g.email)
+const hasCode = (g: AdminGuest): g is InvitableGuest => g.code !== null && !isEventEmail(g.email)
 
 // Tarjeta para imprimir: cabe 8 por hoja A4 (2 columnas x 4 filas)
 function InviteCard({ guest, url }: { guest: InvitableGuest; url: string }) {

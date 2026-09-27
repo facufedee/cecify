@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { parseInviteHash } from '@/lib/invite'
@@ -126,6 +127,15 @@ export default function LoginPage() {
               {isLoading ? 'Entrando…' : 'Entrar'}
             </button>
           </form>
+        )}
+
+        {phase === 'form' && (
+          <p className="text-center text-xs text-neutral-500">
+            ¿Organizás la fiesta?{' '}
+            <Link href="/login/admin" className="font-medium text-[#4A7C59] underline">
+              Entrá con usuario y contraseña
+            </Link>
+          </p>
         )}
       </div>
     </main>

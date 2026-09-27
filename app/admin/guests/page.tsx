@@ -8,7 +8,7 @@ import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Mod
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
-import { contactLabel, phoneFromEventEmail } from '@/lib/event'
+import { contactLabel, isEventEmail } from '@/lib/event'
 import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
@@ -345,7 +345,7 @@ function EditGuestModal({
                   <Copy size={15} /> Copiar enlace
                 </button>
                 {/* Quien entro con el QR de la fiesta no tiene email real */}
-                {!phoneFromEventEmail(guest.email) && (
+                {!isEventEmail(guest.email) && (
                   <a
                     className={btn.secondary}
                     href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}

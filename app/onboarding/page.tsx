@@ -84,7 +84,9 @@ export default function OnboardingPage() {
         }
         if (data.guestName) setName(data.guestName)
         if (isSide(data.guestSide)) setSide(data.guestSide) // lo cargo el admin: se puede cambiar
-        if (typeof data.guestPhone === 'string') setWhatsapp(`+${data.guestPhone}`) // lo puso al entrar con el QR
+        // Lo que puso al entrar con el QR de la fiesta
+        if (typeof data.guestPhone === 'string') setWhatsapp(`+${data.guestPhone}`)
+        if (typeof data.guestInstagram === 'string') setInstagram(data.guestInstagram)
         setReady(true)
       })
       .catch(() => setReady(true))
