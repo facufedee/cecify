@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Camera, Heart, LayoutGrid, Loader2, LogOut, MessageCircle, MoreHorizontal } from 'lucide-react'
+import InstallApp from '@/components/app/InstallApp'
 import { useMe } from '@/components/app/MeProvider'
 import ActionSheet from '@/components/wall/ActionSheet'
 import { useSafety } from '@/components/safety/useSafety'
@@ -146,6 +147,7 @@ export default function ProfileView({ userId }: { userId?: string }) {
               Panel de administración
             </Link>
           )}
+          {isMe && <InstallApp />}
         </section>
 
         <div className="flex justify-center border-t border-ig-border">

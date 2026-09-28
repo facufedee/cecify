@@ -68,6 +68,7 @@ const fnChecks = [
   ['admin_list_guests', { p_actor: NIL }, 'panel de administracion'],
   ['admin_get_event_access', { p_actor: NIL }, 'QR de la fiesta'],
   ['admin_account_of', { p_user: NIL }, 'cuentas de organizador'],
+  ['redeem_session_transfer', { p_hash: 'chequeo' }, 'pasar la sesion a la app instalada'],
 ]
 let schemaOk = true
 for (const [fn, args, what] of fnChecks) {
