@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import StepIndicator from '@/components/onboarding/StepIndicator'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
+import BioPicks from '@/components/profile/BioPicks'
 import ModeFields from '@/components/profile/ModeFields'
 import PhotoEditor from '@/components/photo/PhotoEditor'
 import { authFetch, getToken } from '@/lib/client-auth'
@@ -18,8 +19,13 @@ import {
   MAX_EXTRA_PHOTOS,
   MAX_INTERESTS,
   NAME_MAX,
+  ageProblem,
+  cleanAgeInput,
   isSide,
+  DEFAULT_PREFS,
+  prefsComplete,
   type LookingFor,
+  type MatchPrefs,
   type Side,
 } from '@/lib/profile-schema'
 
@@ -48,9 +54,13 @@ export default function OnboardingPage() {
   const [side, setSide] = useState<Side | null>(null)
   const [wantsMatch, setWantsMatch] = useState<boolean | null>(null)
   const [lookingFor, setLookingFor] = useState<LookingFor[]>([])
+  const [prefs, setPrefs] = useState<MatchPrefs>(DEFAULT_PREFS)
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [bio, setBio] = useState('')
+  const bioRef = useRef<HTMLTextAreaElement>(null)
+  // Los errores de un campo se muestran recien cuando la persona paso por el (no apenas abre la pantalla)
+  const [touched, setTouched] = useState({ name: false, age: false })
   // indice 0 = foto principal, 1..3 = adicionales
   const [photos, setPhotos] = useState<Photo[]>(Array(1 + MAX_EXTRA_PHOTOS).fill(null))
   const [uploading, setUploading] = useState<number | null>(null)
@@ -74,6 +84,9 @@ export default function OnboardingPage() {
         }
         if (data.guestName) setName(data.guestName)
         if (isSide(data.guestSide)) setSide(data.guestSide) // lo cargo el admin: se puede cambiar
+        // Lo que puso al entrar con el QR de la fiesta
+        if (typeof data.guestPhone === 'string') setWhatsapp(`+${data.guestPhone}`)
+        if (typeof data.guestInstagram === 'string') setInstagram(data.guestInstagram)
         setReady(true)
       })
       .catch(() => setReady(true))
@@ -84,8 +97,11 @@ export default function OnboardingPage() {
   const isLast = step === steps.length
 
   const ageNum = Number(age)
+  // Con un solo digito todavia puede estar escribiendo ("3" de "32"): se avisa al salir del campo
+  const ageError = touched.age || age.length === 2 ? ageProblem(age) : null
+  const nameError = touched.name && !name.trim() ? 'Poné tu nombre' : null
   const stepValid = {
-    mode: side !== null && wantsMatch !== null && (wantsMatch === false || lookingFor.length > 0),
+    mode: side !== null && wantsMatch !== null && (wantsMatch === false || (lookingFor.length > 0 && prefsComplete(prefs))),
     you: name.trim().length > 0 && Number.isInteger(ageNum) && ageNum >= AGE_MIN && ageNum <= AGE_MAX,
     photos: photos[0] !== null && uploading === null,
     contact: interests.length > 0 && (instagram.trim() !== '' || whatsapp.trim() !== ''),
@@ -139,6 +155,7 @@ export default function OnboardingPage() {
           side,
           wantsMatch,
           lookingFor,
+          ...prefs,
         }),
       })
       const data = await res.json()
@@ -207,6 +224,8 @@ export default function OnboardingPage() {
                   onSide={setSide}
                   onWantsMatch={setWantsMatch}
                   onLookingFor={setLookingFor}
+                  prefs={prefs}
+                  onPrefs={setPrefs}
                 />
               )}
 
@@ -219,35 +238,59 @@ export default function OnboardingPage() {
                       placeholder="Cómo querés que te vean"
                       maxLength={NAME_MAX}
                       value={name}
+                      aria-invalid={nameError !== null}
+                      aria-describedby={nameError ? 'name-error' : undefined}
                       onChange={(e) => setName(e.target.value)}
+                      onBlur={() => setTouched((t) => ({ ...t, name: true }))}
                     />
+                    {nameError && (
+                      <span id="name-error" className="mt-1 block text-xs text-red-600">
+                        {nameError}
+                      </span>
+                    )}
                   </label>
                   <label className="block text-sm">
                     <span className="mb-1.5 block font-medium">Edad</span>
                     <input
                       className={inputClass}
-                      type="number"
+                      type="text"
                       inputMode="numeric"
-                      min={AGE_MIN}
-                      max={AGE_MAX}
-                      placeholder={`${AGE_MIN}+`}
+                      autoComplete="off"
+                      maxLength={2}
+                      placeholder={`Entre ${AGE_MIN} y ${AGE_MAX}`}
                       value={age}
-                      onChange={(e) => setAge(e.target.value)}
+                      aria-invalid={ageError !== null}
+                      aria-describedby={ageError ? 'age-error' : undefined}
+                      onChange={(e) => setAge(cleanAgeInput(e.target.value))}
+                      onBlur={() => setTouched((t) => ({ ...t, age: true }))}
                     />
+                    {ageError && (
+                      <span id="age-error" className="mt-1 block text-xs text-red-600">
+                        {ageError}
+                      </span>
+                    )}
                   </label>
-                  <label className="block text-sm">
-                    <span className="mb-1.5 flex justify-between font-medium">
+                  <div className="text-sm">
+                    <label htmlFor="bio" className="mb-1.5 flex justify-between font-medium">
                       Sobre vos <span className="font-normal text-neutral-500">{bio.length}/{BIO_MAX}</span>
-                    </span>
+                    </label>
                     <textarea
+                      id="bio"
+                      ref={bioRef}
                       className={`${inputClass} resize-none`}
                       rows={3}
                       maxLength={BIO_MAX}
-                      placeholder="Contá algo que rompa el hielo"
+                      placeholder="Tocá los botones de abajo o escribí algo que rompa el hielo"
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
                     />
-                  </label>
+                    <BioPicks
+                      bio={bio}
+                      max={BIO_MAX}
+                      onChange={setBio}
+                      textarea={bioRef}
+                    />
+                  </div>
                 </div>
               )}
 

@@ -12,12 +12,37 @@ const valid = {
   side: 'bride',
   wantsMatch: true,
   lookingFor: ['meet'],
+  gender: 'woman',
+  interestedIn: 'men',
+  prefAgeMin: 25,
+  prefAgeMax: 40,
 }
 
 const error = (changes: Record<string, unknown>) => {
   const r = validateProfileInput({ ...valid, ...changes })
   return r.ok ? null : r.error
 }
+
+describe('preferencias de match', () => {
+  it('quien conoce gente tiene que decir quien es, a quien busca y el rango de edad', () => {
+    expect(error({ gender: undefined })).toMatch(/identificás/)
+    expect(error({ gender: 'otro' })).toMatch(/identificás/)
+    expect(error({ interestedIn: undefined })).toMatch(/a quién/)
+    expect(error({ prefAgeMin: 17 })).toMatch(/rango/)
+    expect(error({ prefAgeMax: 100 })).toMatch(/rango/)
+    expect(error({ prefAgeMin: 40, prefAgeMax: 30 })).toMatch(/rango/)
+    expect(error({ prefAgeMin: 25.5 })).toMatch(/rango/)
+    const r = validateProfileInput(valid)
+    expect(r.ok && r.data).toMatchObject({ gender: 'woman', interestedIn: 'men', prefAgeMin: 25, prefAgeMax: 40 })
+  })
+
+  it('quien solo usa el muro no filtra: se descartan las preferencias', () => {
+    const r = validateProfileInput({ ...valid, wantsMatch: false, lookingFor: [], interests: [], contactMethods: {} })
+    expect(r.ok && r.data).toMatchObject({ gender: 'woman', interestedIn: null, prefAgeMin: 18, prefAgeMax: 99 })
+    const sin = validateProfileInput({ ...valid, wantsMatch: false, gender: undefined, interestedIn: undefined })
+    expect(sin.ok && sin.data.gender).toBeNull()
+  })
+})
 
 describe('validateProfileInput', () => {
   it('acepta un perfil valido y normaliza nombre, Instagram y WhatsApp', () => {

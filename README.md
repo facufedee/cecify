@@ -23,8 +23,16 @@ Cuentas de prueba (se crean solas):
 | `dev@cecify.local` | `DEV1-2345` | tu cuenta de prueba |
 | `demo1@demo.cecify.local` … `demo6@…` | `DEMO0001` … `DEMO0006` | Lucía, Mateo, Camila, Joaquín, Valentina, Tomás |
 
-`dev@` es superadmin, Mateo (`demo2`) es admin y Valentina (`demo5`) solo usa el muro (no aparece en Descubrir), para ver
-cada caso. El panel de administración está en <http://localhost:3000/admin> (también hay un botón en tu perfil).
+Todas son invitados comunes; Valentina (`demo5`) solo usa el muro (no aparece en Descubrir). El panel de administración
+(<http://localhost:3000/admin>) es solo para las cuentas de organizador, que entran con usuario y contraseña en
+<http://localhost:3000/login/admin>. Para crear la tuya (con `npm run dev` frenado: la base local es de un solo proceso):
+
+```bash
+npm run create:admin -- tu-usuario
+```
+
+Pide la contraseña sin mostrarla y guarda solo su hash. Correrlo de nuevo con el mismo usuario le pone otra contraseña.
+Desde el panel (*Mi cuenta*) se cambia la contraseña; los demás roles se asignan desde *Invitados*.
 
 En desarrollo los invitados demo con número impar que participan del match (Lucía y Camila) te dan like de vuelta, así se
 ve la pantalla de match, y todos responden solos a los mensajes. Hay fotos e historias de ejemplo.
@@ -47,7 +55,9 @@ Sin él todo funciona igual, con actualización por polling (unos segundos de de
 | `npx tsc --noEmit` | chequeo de tipos |
 | `npm test` | tests (migraciones con PGlite, validadores, utilidades) |
 | `npm run import:guests -- invitados.csv` | carga la lista de invitados en Supabase y genera los códigos (columnas: `name,email[,code][,side]`; `side` = novia / novio / ambos) |
-| `npm run set:role -- email guest\|admin\|superadmin` | cambia el rol de alguien en Supabase (para nombrar al primer superadmin) |
+| `npm run create:admin -- usuario` | crea una cuenta de organizador (superadmin) con usuario y contraseña, o le cambia la contraseña; con `LOCAL_DB=1`, en la base local |
+| `npm run check:supabase` | revisa un proyecto de Supabase (variables, migraciones, bucket de fotos, que la clave pública no lea ni llame nada, cuenta de organizador). Solo lee |
+| `npm run set:role -- email guest\|admin\|superadmin` | cambia el rol de alguien en Supabase |
 | `node scripts/generate-icons.mjs` | regenera los iconos de la PWA a partir de la hoja de logos |
 
 ## Variables de entorno
@@ -61,6 +71,7 @@ Ver `.env.example`. Las importantes:
 | `JWT_SECRET` | firma de sesiones; **tiene que ser el mismo** en la app y en `cecify-socket` |
 | `NEXT_PUBLIC_SOCKET_URL` | URL del servidor de sockets |
 | `SOCKET_SECRET` | clave compartida app ↔ servidor de sockets (también en `cecify-socket`) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | captcha "no soy un robot" (Cloudflare Turnstile) en la entrada con el QR de la fiesta y en el login de organizadores. Sin ellas no se pide (desarrollo); con ellas, si la verificación falla no se deja entrar. Para probar: `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` (claves de prueba de Cloudflare, siempre aprueban) |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | notificaciones push (`npx web-push generate-vapid-keys`; el subject es un `mailto:` o `https://` real). Sin ellas quedan apagadas |
 
 ## Cómo está armado

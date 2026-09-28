@@ -17,7 +17,8 @@ const withNewCode = async <T>(fn: (code: string) => Promise<T>): Promise<T> => {
   }
 }
 
-export type SavedGuest = { id: string; email: string; code: string; created: boolean }
+// code null = cuenta con rol: solo un superadmin ve (y cambia) su codigo
+export type SavedGuest = { id: string; email: string; code: string | null; created: boolean }
 
 // Alta de un invitado. Si el email ya existe se actualiza el nombre (y el lado si viene) y se conserva su codigo.
 export const addGuest = async (
@@ -37,7 +38,7 @@ export const regenerateCode = async (actorId: string, guestId: string) => {
 export type ImportSummary = {
   created: number
   updated: number
-  rows: { name: string; email: string; code: string; created: boolean }[]
+  rows: { name: string; email: string; code: string | null; created: boolean }[]
 }
 
 const BATCH = 10

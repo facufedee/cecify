@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
@@ -8,6 +8,7 @@ import { Loader2, X } from 'lucide-react'
 import { useMe } from '@/components/app/MeProvider'
 import PushToggle from '@/components/app/PushToggle'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
+import BioPicks from '@/components/profile/BioPicks'
 import ModeFields from '@/components/profile/ModeFields'
 import ActionSheet from '@/components/wall/ActionSheet'
 import PhotoEditor from '@/components/photo/PhotoEditor'
@@ -23,7 +24,12 @@ import {
   MAX_EXTRA_PHOTOS,
   MAX_INTERESTS,
   NAME_MAX,
+  DEFAULT_PREFS,
+  prefsComplete,
+  ageProblem,
+  cleanAgeInput,
   type LookingFor,
+  type MatchPrefs,
   type Profile,
   type Side,
 } from '@/lib/profile-schema'
@@ -42,10 +48,13 @@ export default function EditProfilePage() {
   const [side, setSide] = useState<Side | null>(null)
   const [wantsMatch, setWantsMatch] = useState(true)
   const [lookingFor, setLookingFor] = useState<LookingFor[]>([])
+  const [prefs, setPrefs] = useState<MatchPrefs>(DEFAULT_PREFS)
 
   const [name, setName] = useState('')
   const [age, setAge] = useState('')
   const [bio, setBio] = useState('')
+  const bioRef = useRef<HTMLTextAreaElement>(null)
+  const [ageTouched, setAgeTouched] = useState(false)
   // indice 0 = principal, 1..3 = adicionales; cada uno es la URL ya subida (o null)
   const [photos, setPhotos] = useState<(string | null)[]>(Array(1 + MAX_EXTRA_PHOTOS).fill(null))
   const [uploading, setUploading] = useState<number | null>(null)
@@ -73,6 +82,7 @@ export default function EditProfilePage() {
         setSide(profile.side)
         setWantsMatch(profile.wantsMatch)
         setLookingFor(profile.lookingFor)
+        setPrefs({ gender: profile.gender, interestedIn: profile.interestedIn, prefAgeMin: profile.prefAgeMin, prefAgeMax: profile.prefAgeMax })
         setReady(true)
       })
       .catch(() => !cancelled && setError('No se pudo cargar tu perfil'))
@@ -111,6 +121,8 @@ export default function EditProfilePage() {
     )
 
   const ageNum = Number(age)
+  const ageError = ageTouched || age.length === 2 ? ageProblem(age) : null
+  const nameError = !name.trim() ? 'Poné tu nombre' : null
   const valid =
     name.trim().length > 0 &&
     Number.isInteger(ageNum) &&
@@ -121,6 +133,7 @@ export default function EditProfilePage() {
     // Intereses, contacto y que buscas solo se piden si participa del match
     (!wantsMatch ||
       (lookingFor.length > 0 &&
+        prefsComplete(prefs) &&
         interests.length > 0 &&
         (instagram.trim() !== '' || whatsapp.trim() !== ''))) &&
     uploading === null
@@ -160,6 +173,7 @@ export default function EditProfilePage() {
           side,
           wantsMatch,
           lookingFor,
+          ...prefs,
         }),
       })
       const data = await res.json()
@@ -216,35 +230,53 @@ export default function EditProfilePage() {
         <section className="space-y-5">
           <label className="block text-xs text-ig-muted">
             Nombre
-            <input className={field} value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} />
+            <input
+              className={field}
+              value={name}
+              maxLength={NAME_MAX}
+              aria-invalid={nameError !== null}
+              onChange={(e) => setName(e.target.value)}
+            />
+            {nameError && <span className="mt-1 block text-ig-like">{nameError}</span>}
           </label>
           <label className="block text-xs text-ig-muted">
             Edad
             <input
               className={field}
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={AGE_MIN}
-              max={AGE_MAX}
+              autoComplete="off"
+              maxLength={2}
               value={age}
-              onChange={(e) => setAge(e.target.value)}
+              aria-invalid={ageError !== null}
+              onChange={(e) => setAge(cleanAgeInput(e.target.value))}
+              onBlur={() => setAgeTouched(true)}
             />
+            {ageError && <span className="mt-1 block text-ig-like">{ageError}</span>}
           </label>
-          <label className="block text-xs text-ig-muted">
-            <span className="flex justify-between">
+          <div className="text-xs text-ig-muted">
+            <label htmlFor="bio" className="flex justify-between">
               Sobre vos
               <span>
                 {bio.length}/{BIO_MAX}
               </span>
-            </span>
+            </label>
             <textarea
+              id="bio"
+              ref={bioRef}
               className={`${field} resize-none`}
               rows={2}
               maxLength={BIO_MAX}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
             />
-          </label>
+            <BioPicks
+              bio={bio}
+              max={BIO_MAX}
+              onChange={setBio}
+              textarea={bioRef}
+            />
+          </div>
         </section>
 
         <ModeFields
@@ -254,6 +286,8 @@ export default function EditProfilePage() {
           onSide={setSide}
           onWantsMatch={setWantsMatch}
           onLookingFor={setLookingFor}
+          prefs={prefs}
+          onPrefs={setPrefs}
         />
         {!wantsMatch && (
           <p className="-mt-4 text-xs text-ig-muted">

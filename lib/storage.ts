@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { supabaseServer } from '@/lib/supabase'
+import { supabaseServer, supabaseUrl } from '@/lib/supabase'
 
 const BUCKET = 'profile-photos'
 const useLocal = process.env.LOCAL_DB === '1' && process.env.NODE_ENV !== 'production'
@@ -11,7 +11,7 @@ const useLocal = process.env.LOCAL_DB === '1' && process.env.NODE_ENV !== 'produ
 const publicPrefix = (userId: string) =>
   useLocal
     ? `/uploads/${userId}/`
-    : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${userId}/`
+    : `${supabaseUrl()}/storage/v1/object/public/${BUCKET}/${userId}/`
 
 export const isOwnPhotoUrl = (url: string, userId: string) =>
   url.startsWith(publicPrefix(userId)) && !url.includes('..')

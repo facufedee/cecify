@@ -9,6 +9,9 @@ const MAX_BYTES = 4 * 1024 * 1024
 // Cabe una historia 9:16 de 1080x1920 sin achicarse
 const MAX_WIDTH = 1440
 const MAX_HEIGHT = 1920
+// Tope de pixeles al decodificar: un archivo chico (PNG de pocos MB) puede declarar cientos de millones de
+// pixeles y llenar la memoria del servidor. 50 MP alcanza de sobra (el editor ya manda la foto achicada).
+const MAX_INPUT_PIXELS = 50_000_000
 
 export async function POST(req: Request) {
   const auth = await getAuth(req)
@@ -37,7 +40,7 @@ export async function POST(req: Request) {
 
   try {
     // sharp decodifica de verdad: si no es una imagen real, falla (no confiamos en el mimetype)
-    const jpeg = await sharp(Buffer.from(await file.arrayBuffer()))
+    const jpeg = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: MAX_INPUT_PIXELS })
       .rotate() // respeta la orientacion EXIF; el re-encode elimina el EXIF (incluido GPS)
       // Solo achica (para que no pesen de mas); NUNCA recorta ni agranda: el encuadre lo elige la persona en el editor
       .resize({ width: MAX_WIDTH, height: MAX_HEIGHT, fit: 'inside', withoutEnlargement: true })
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     const url = await savePhoto(auth.userId, jpeg)
     return Response.json({ url })
   } catch (error) {
-    if (error instanceof Error && /unsupported image format|Input buffer/i.test(error.message)) {
+    if (error instanceof Error && /unsupported image format|Input buffer|pixel limit/i.test(error.message)) {
       return Response.json({ error: 'El archivo no es una imagen válida' }, { status: 400 })
     }
     console.error('profiles/photo error:', error)

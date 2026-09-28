@@ -51,7 +51,7 @@ export type AdminGuest = {
   id: string
   name: string
   email: string
-  code: string
+  code: string | null // null = cuenta con rol: solo un superadmin ve su codigo
   side: Side | null
   createdAt: string
   userId: string | null // null = todavia no inicio sesion
@@ -67,7 +67,7 @@ export const adminListGuests = async (
     guest_id: string
     guest_name: string
     guest_email: string
-    guest_code: string
+    guest_code: string | null
     guest_side: Side | null
     created_at: Ts
     user_id: string | null
@@ -101,7 +101,7 @@ export const adminUpsertGuest = async (
   actorId: string,
   input: { name: string; email: string; code: string; side?: Side | null; replaceCode?: boolean }
 ) => {
-  const [r] = await callFn<{ out_id: string; out_code: string; out_created: boolean }>('admin_upsert_guest', {
+  const [r] = await callFn<{ out_id: string; out_code: string | null; out_created: boolean }>('admin_upsert_guest', {
     p_actor: actorId,
     p_name: input.name,
     p_email: input.email,
@@ -118,7 +118,7 @@ export const adminUpdateGuest = async (
   guestId: string,
   changes: { name?: string; side?: Side | null; code?: string }
 ) => {
-  const [r] = await callFn<{ out_id: string; out_code: string }>('admin_update_guest', {
+  const [r] = await callFn<{ out_id: string; out_code: string | null }>('admin_update_guest', {
     p_actor: actorId,
     p_guest: guestId,
     p_name: changes.name ?? null,

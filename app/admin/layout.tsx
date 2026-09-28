@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, ShieldAlert, UserRound } from 'lucide-react'
 import MeProvider, { useMe } from '@/components/app/MeProvider'
 import { Spinner } from '@/components/admin/ui'
 import { getToken } from '@/lib/client-auth'
@@ -14,6 +14,7 @@ const TABS = [
   { href: '/admin/reports', label: 'Reportes' },
   { href: '/admin/guests', label: 'Invitados' },
   { href: '/admin/invitations', label: 'Invitaciones' },
+  { href: '/admin/event', label: 'QR de la fiesta' },
   { href: '/admin/content', label: 'Contenido' },
 ]
 
@@ -58,6 +59,13 @@ function Shell({ children }: { children: React.ReactNode }) {
               Cecify · {ROLE_LABELS[me.role]}
             </p>
           </div>
+          <Link
+            href="/admin/account"
+            aria-label="Mi cuenta"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+          >
+            <UserRound size={16} /> <span className="hidden sm:inline">Mi cuenta</span>
+          </Link>
           <Link href="/discover" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100">
             <ArrowLeft size={16} /> <span className="hidden sm:inline">Volver a la app</span>
             <span className="sm:hidden">App</span>

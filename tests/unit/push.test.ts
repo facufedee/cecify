@@ -1,9 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildPayload, createPushSender, type PushSubscriptionJson } from '@/lib/push'
+import { buildPayload, createPushSender, isPushServiceUrl, type PushSubscriptionJson } from '@/lib/push'
 
 const sub = (n: number): PushSubscriptionJson => ({
   endpoint: `https://push.example.com/send/${n}`,
   keys: { p256dh: `p${n}`, auth: `a${n}` },
+})
+
+describe('isPushServiceUrl', () => {
+  it('acepta los servicios de push de los navegadores', () => {
+    expect(isPushServiceUrl('https://fcm.googleapis.com/fcm/send/abc:def')).toBe(true)
+    expect(isPushServiceUrl('https://updates.push.services.mozilla.com/wpush/v2/gAAA')).toBe(true)
+    expect(isPushServiceUrl('https://web.push.apple.com/QGx7')).toBe(true)
+    expect(isPushServiceUrl('https://wns2-by3p.notify.windows.com/w/?token=x')).toBe(true)
+  })
+
+  it('rechaza cualquier otra direccion (el servidor le haria un POST)', () => {
+    for (const bad of [
+      'https://evil.example.com/x',
+      'https://fcm.googleapis.com.evil.com/x',
+      'https://notify.windows.com.evil.com/x',
+      'http://fcm.googleapis.com/x',
+      'https://fcm.googleapis.com:8443/x',
+      'https://user:pass@fcm.googleapis.com/x',
+      'https://127.0.0.1/x',
+      'https://169.254.169.254/latest',
+      'no es una url',
+    ]) {
+      expect(isPushServiceUrl(bad), bad).toBe(false)
+    }
+  })
 })
 
 describe('buildPayload', () => {

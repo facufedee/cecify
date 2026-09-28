@@ -22,4 +22,7 @@ export const serverError = (label: string, error: unknown) => {
 }
 
 // Postgres: unique_violation (p. ej. un codigo de acceso repetido)
+// Postgres: insufficient_privilege (p. ej. un admin quiere cambiar el codigo de otro admin)
+export const isInsufficientPrivilege = (error: unknown) => (error as { code?: string } | null)?.code === '42501'
+
 export const isUniqueViolation = (error: unknown) => (error as { code?: string } | null)?.code === '23505'
