@@ -121,6 +121,18 @@ export default function ChatPage() {
     if (stickToBottom.current) el.scrollTop = el.scrollHeight
   }, [messages, typing, loading])
 
+  // Al abrir o cerrar el teclado cambia el alto: si se estaba al final de la charla, se queda al final
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const keepBottom = () => {
+      const el = scrollRef.current
+      if (el && stickToBottom.current) el.scrollTop = el.scrollHeight
+    }
+    vv.addEventListener('resize', keepBottom)
+    return () => vv.removeEventListener('resize', keepBottom)
+  }, [])
+
   const loadOlder = useCallback(async () => {
     const oldest = messages.find((m) => !m.pending)
     if (loadingOlder || !hasMore || !oldest) return
@@ -353,7 +365,7 @@ export default function ChatPage() {
         {announcement}
       </p>
 
-      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="chat-bg min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -401,7 +413,7 @@ export default function ChatPage() {
                   <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                     <div
                       className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
-                        mine ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-cream text-neutral-800'
+                        mine ? 'rounded-br-md bg-brand text-white shadow-sm' : 'rounded-bl-md bg-white text-neutral-800 shadow-sm ring-1 ring-black/5'
                       } ${m.pending ? 'opacity-60' : ''}`}
                     >
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
