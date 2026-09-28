@@ -27,6 +27,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#4A7C59',
+  // Con el teclado abierto, Android achica la pagina en vez de empujarla hacia arriba (el chat no pierde el encabezado)
+  interactiveWidget: 'resizes-content',
 }
 
 export default function RootLayout({
