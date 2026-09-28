@@ -70,7 +70,8 @@ const fnChecks = [
   ['admin_account_of', { p_user: NIL }, 'cuentas de organizador'],
   ['redeem_session_transfer', { p_hash: 'chequeo' }, 'pasar la sesion a la app instalada'],
   ['skipped_count', { p_user: NIL }, 'volver a ver los que pasaste'],
-  ['event_search_guests', { p_key: 'chequeo', p_query: 'chequeo' }, 'elegirse de la lista'],
+  ['guest_search', { p_query: 'chequeo' }, 'login con nombre y PIN'],
+  ['registration_status', {}, 'registro abierto o cerrado'],
 ]
 let schemaOk = true
 for (const [fn, args, what] of fnChecks) {
@@ -121,7 +122,7 @@ if (publicKey) {
     ['find_guest', { p_email: 'x@x.com', p_code: 'XXXXXXXX' }],
     ['admin_list_guests', { p_actor: NIL }],
     ['admin_account_for_login', { p_username: 'chequeo' }],
-    ['event_join', { p_key: 'x', p_name: 'x', p_email: 'x@x.com', p_code: 'X' }],
+    ['guest_pin_for_login', { p_guest: NIL }],
   ]) {
     const { error } = await anon.rpc(fn, args)
     if (!error) bad(`La clave publica PUEDE llamar a ${fn}`, 'Falta el REVOKE de esa funcion en su migracion')

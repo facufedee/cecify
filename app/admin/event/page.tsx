@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ExternalLink, Printer, RefreshCw } from 'lucide-react'
+import { ExternalLink, Printer } from 'lucide-react'
 import Qr from '@/components/admin/Qr'
-import { Badge, btn, Card, ConfirmDialog, ErrorNote, inputClass, Spinner, useToast } from '@/components/admin/ui'
+import { Badge, btn, Card, ErrorNote, inputClass, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, errorMessage } from '@/lib/admin-client'
 import type { EventAccess } from '@/lib/db/event'
-import { eventJoinUrl } from '@/lib/event'
 
 type Format = 'poster' | 'tables'
 
@@ -52,7 +51,6 @@ export default function AdminEventPage() {
   const [opens, setOpens] = useState('')
   const [closes, setCloses] = useState('')
   const [saving, setSaving] = useState(false)
-  const [confirmNew, setConfirmNew] = useState(false)
   const [customOrigin, setCustomOrigin] = useState<string | null>(null)
   const origin = customOrigin ?? (typeof window === 'undefined' ? '' : window.location.origin)
   const [format, setFormat] = useState<Format>('poster')
@@ -75,13 +73,13 @@ export default function AdminEventPage() {
       .catch((e) => setError(errorMessage(e)))
   }, [])
 
-  const save = async (range: { opensAt: string; closesAt: string }, newQr = false) => {
+  const save = async (range: { opensAt: string; closesAt: string }, message: string) => {
     setSaving(true)
     setError(null)
     try {
-      const d = await adminJson<{ event: EventAccess }>('/api/admin/event', { method: 'PUT', json: { ...range, newQr } })
+      const d = await adminJson<{ event: EventAccess }>('/api/admin/event', { method: 'PUT', json: range })
       load(d.event)
-      show(newQr ? 'QR nuevo generado' : event ? 'Horario guardado' : 'QR de la fiesta activado')
+      show(message)
     } catch (e) {
       setError(errorMessage(e))
       throw e
@@ -100,15 +98,17 @@ export default function AdminEventPage() {
   const status = !event
     ? null
     : now < Date.parse(event.opensAt)
-      ? { tone: 'amber' as const, text: `Abre el ${pretty(event.opensAt)}` }
+      ? { tone: 'amber' as const, text: `Registro cerrado · abre el ${pretty(event.opensAt)}` }
       : now >= Date.parse(event.closesAt)
-        ? { tone: 'neutral' as const, text: 'Cerrado' }
-        : { tone: 'green' as const, text: `Abierto hasta el ${pretty(event.closesAt)}` }
+        ? { tone: 'neutral' as const, text: 'Registro cerrado' }
+        : { tone: 'green' as const, text: `Registro abierto hasta el ${pretty(event.closesAt)}` }
+  const isOpen = status?.tone === 'green'
 
   const base = origin.trim()
   const validBase = /^https?:\/\/[^\s/]+/i.test(base)
   const isLocal = /localhost|127\.0\.0\.1|192\.168\.|10\./.test(base)
-  const url = event && validBase ? eventJoinUrl(base, event.key) : null
+  // El QR solo abre la app: la entrada es buscar el nombre (y el PIN)
+  const url = validBase ? `${base.replace(/\/+$/, '')}/login` : null
   const validWindow = opens && closes && new Date(closes) > new Date(opens)
 
   return (
@@ -116,11 +116,11 @@ export default function AdminEventPage() {
       <div className="space-y-4 print:hidden">
         <Card className="space-y-4 p-4">
           <div>
-            <h2 className="text-base font-semibold">QR de la fiesta</h2>
+            <h2 className="text-base font-semibold">Registro de invitados</h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Un mismo QR para la entrada y todas las mesas. Quien lo escanea busca su nombre en la lista de invitados (sección
-              Invitados) y se elige; si no está en la lista, entra con su nombre y WhatsApp. Solo funciona en el horario que
-              elijas.
+              Mientras esté abierto, cada invitado busca su nombre en la lista (sección Invitados), se elige e inventa un PIN de 4
+              números. Con el registro cerrado, quien nunca entró ve «Registro momentáneamente inhabilitado»; los que ya entraron
+              siguen adentro y pueden volver a entrar con su nombre y su PIN.
             </p>
           </div>
 
@@ -128,14 +128,14 @@ export default function AdminEventPage() {
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge tone={status.tone}>{status.text}</Badge>
               <span className="text-neutral-500">
-                {event!.joined} {event!.joined === 1 ? 'persona entró' : 'personas entraron'} con el QR
+                {event!.joined} {event!.joined === 1 ? 'invitado registrado' : 'invitados registrados'}
               </span>
             </div>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm">
-              <span className="mb-1 block font-medium">Funciona desde</span>
+              <span className="mb-1 block font-medium">Abierto desde</span>
               <input type="datetime-local" className={inputClass} value={opens} onChange={(e) => setOpens(e.target.value)} />
             </label>
             <label className="block text-sm">
@@ -147,8 +147,13 @@ export default function AdminEventPage() {
           {error && <ErrorNote>{error}</ErrorNote>}
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={btn.primary} disabled={!validWindow || saving} onClick={() => save(fromInputs()).catch(() => {})}>
-              {event ? 'Guardar horario' : 'Activar QR de la fiesta'}
+            <button
+              type="button"
+              className={btn.primary}
+              disabled={!validWindow || saving}
+              onClick={() => save(fromInputs(), 'Horario guardado').catch(() => {})}
+            >
+              Guardar horario
             </button>
             <button
               type="button"
@@ -156,21 +161,35 @@ export default function AdminEventPage() {
               disabled={saving}
               onClick={() => {
                 const start = new Date()
-                save({ opensAt: start.toISOString(), closesAt: new Date(start.getTime() + 12 * 3600_000).toISOString() }).catch(() => {})
+                save(
+                  { opensAt: start.toISOString(), closesAt: new Date(start.getTime() + 12 * 3600_000).toISOString() },
+                  'Registro abierto por 12 horas'
+                ).catch(() => {})
               }}
             >
               Abrir ahora por 12 h
             </button>
-            {event && (
-              <button type="button" className={btn.ghost} onClick={() => setConfirmNew(true)}>
-                <RefreshCw size={15} /> Cambiar el QR
+            {isOpen && event && (
+              <button
+                type="button"
+                className={btn.ghost}
+                disabled={saving}
+                onClick={() => {
+                  // Cierra ya: el horario termina ahora (y empieza un minuto antes, para que siempre sea valido)
+                  const now = Date.now()
+                  const opensAt = Math.min(Date.parse(event.opensAt), now - 60_000)
+                  save({ opensAt: new Date(opensAt).toISOString(), closesAt: new Date(now).toISOString() }, 'Registro cerrado').catch(() => {})
+                }}
+              >
+                Cerrar el registro ahora
               </button>
             )}
           </div>
         </Card>
 
-        {event && (
-          <Card className="space-y-4 p-4">
+        <Card className="space-y-4 p-4">
+            <h2 className="text-base font-semibold">Carteles con QR</h2>
+            <p className="text-sm text-neutral-600">Para la entrada y las mesas: el QR abre la app, donde cada uno busca su nombre.</p>
             <label className="block text-sm">
               <span className="mb-1 block font-medium">Dirección de la app</span>
               <input
@@ -220,12 +239,7 @@ export default function AdminEventPage() {
                 </a>
               )}
             </div>
-            <p className="text-xs text-neutral-500">
-              Cualquiera con una foto del QR puede entrar mientras esté abierto. Si se filtra, cambialo: los carteles impresos dejan
-              de funcionar.
-            </p>
           </Card>
-        )}
       </div>
 
       {url && (
@@ -239,15 +253,6 @@ export default function AdminEventPage() {
       )}
       <style>{`@media print { @page { size: A4; margin: 10mm } body { background: #fff !important } }`}</style>
 
-      {confirmNew && (
-        <ConfirmDialog
-          title="Cambiar el QR de la fiesta"
-          message="El QR actual deja de funcionar al instante: vas a tener que volver a imprimir los carteles. Quien ya entró sigue adentro."
-          confirmLabel="Cambiar el QR"
-          onClose={() => setConfirmNew(false)}
-          onConfirm={() => save({ opensAt: event!.opensAt, closesAt: event!.closesAt }, true)}
-        />
-      )}
       {toast}
     </div>
   )

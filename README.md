@@ -1,6 +1,6 @@
 # Cecify
 
-App web (PWA) para la boda de Lucas y Cecilia: los invitados entran con un código, arman su perfil,
+App web (PWA) para la boda de Lucas y Cecilia: los invitados se eligen de la lista con un PIN, arman su perfil,
 se conocen con un swipe estilo cita, chatean cuando hay match y comparten fotos e historias.
 
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind 3 · Supabase (Postgres) ·
@@ -16,12 +16,9 @@ npm run dev          # http://localhost:3000
 Con `LOCAL_DB=1` en `.env.local` la app usa un Postgres embebido (PGlite) que aplica las mismas
 migraciones de `supabase/migrations/` y guarda los datos en `.local-db/` (se puede borrar para empezar de cero).
 
-Cuentas de prueba (se crean solas):
-
-| Email | Código | Notas |
-|-------|--------|-------|
-| `dev@cecify.local` | `DEV1-2345` | tu cuenta de prueba |
-| `demo1@demo.cecify.local` … `demo6@…` | `DEMO0001` … `DEMO0006` | Lucía, Mateo, Camila, Joaquín, Valentina, Tomás |
+Cuentas de prueba (se crean solas): *Invitado de prueba* y Lucía, Mateo, Camila, Joaquín, Valentina y Tomás. En
+<http://localhost:3000/login> buscás el nombre y, la primera vez, inventás un PIN de 4 números (como ya tienen cuenta,
+se puede aunque el registro esté cerrado).
 
 Todas son invitados comunes; Valentina (`demo5`) solo usa el muro (no aparece en Descubrir). El panel de administración
 (<http://localhost:3000/admin>) es solo para las cuentas de organizador, que entran con usuario y contraseña en
@@ -106,10 +103,11 @@ Decisiones de diseño que conviene conocer:
 - **Sesiones revocables:** el JWT lleva una versión de sesión (`users.session_version`) y `getAuth` la compara con la base en
   cada pedido (caché de 10 s). Se renueva solo con `/api/auth/refresh` y se cierra en todos los dispositivos con
   `/api/auth/logout-all` o desde el panel. Toda ruta nueva tiene que usar `await getAuth(req)`.
-- **Invitaciones:** cada invitado puede entrar con un enlace o un QR (`/login#e=email&c=codigo`). El panel imprime las
-  tarjetas (8 por hoja A4, con el QR) desde *Invitaciones*, y en *Invitados* se copia el enlace o se abre un correo listo
-  para enviar. Antes de imprimir hay que poner en esa pantalla la dirección **pública** de la app.
-- **Panel de administración** (`/admin`): Resumen, Reportes, Invitados, Invitaciones y Contenido. Las rutas `/api/admin/*` empiezan con
+- **Entrar (invitados):** una sola pantalla (`/login`): buscar el nombre en la lista y un PIN de 4 números. La primera vez
+  (solo con el registro abierto desde *Registro* en el panel) la persona se elige e inventa su PIN; después entra con su
+  nombre y su PIN desde cualquier celular, aunque el registro esté cerrado. 5 intentos fallidos traban el nombre 15
+  minutos; un organizador puede reiniciar el PIN. El QR de los carteles solo abre la app.
+- **Panel de administración** (`/admin`): Resumen, Reportes, Invitados, Registro y Contenido. Las rutas `/api/admin/*` empiezan con
   `adminOnly` (`lib/admin-api.ts`) y cada función SQL `admin_*` vuelve a comprobar el rol, así que un token viejo o una ruta
   olvidada no alcanzan. Lo que hace cada administrador queda en `admin_actions`.
 - **Los contactos solo se revelan tras un match** y nunca salen de la API de Descubrir.

@@ -13,8 +13,7 @@ const TABS = [
   { href: '/admin', label: 'Resumen' },
   { href: '/admin/reports', label: 'Reportes' },
   { href: '/admin/guests', label: 'Invitados' },
-  { href: '/admin/invitations', label: 'Invitaciones' },
-  { href: '/admin/event', label: 'QR de la fiesta' },
+  { href: '/admin/event', label: 'Registro' },
   { href: '/admin/content', label: 'Contenido' },
 ]
 

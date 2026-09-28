@@ -2,14 +2,12 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Copy, Download, Loader2, Mail, Plus, Search, Upload } from 'lucide-react'
+import { Download, Loader2, Plus, Search, Upload } from 'lucide-react'
 import { useMe } from '@/components/app/MeProvider'
 import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Modal, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
-import { prettyCode } from '@/lib/format'
 import { contactLabel, hasRealEmail } from '@/lib/event'
-import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
 
@@ -17,14 +15,6 @@ type Page = { guests: AdminGuest[]; total: number; pageSize: number }
 
 const sideText = (s: Side | null) => (s ? SIDE_LABELS[s] : 'Sin dato')
 
-const copy = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    return false
-  }
-}
 
 function SideSelect({ value, onChange }: { value: Side | ''; onChange: (v: Side | '') => void }) {
   return (
@@ -72,16 +62,8 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
           <p>
             {saved.created ? 'Se agregó' : 'Ya estaba en la lista: se actualizó'} <span className="font-medium">{saved.email}</span>.
           </p>
-          <div className="rounded-xl bg-brand-soft p-4 text-center">
-            <p className="text-xs text-neutral-600">Código de acceso</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tracking-widest text-brand-dark">{prettyCode(saved.code)}</p>
-          </div>
+          <p className="text-neutral-600">Ya puede entrar buscando su nombre (con el registro abierto) e inventando su PIN.</p>
           <div className="flex justify-end gap-2">
-            {saved.code && (
-              <button type="button" className={btn.secondary} onClick={() => copy(prettyCode(saved.code))}>
-                <Copy size={15} /> Copiar código
-              </button>
-            )}
             <button type="button" className={btn.primary} onClick={onClose}>
               Listo
             </button>
@@ -186,9 +168,9 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
               type="button"
               className={btn.secondary}
               onClick={() =>
-                downloadCsv('invitados-con-codigos.csv', [
-                  ['name', 'email', 'code'],
-                  ...result.rows.map((r) => [r.name, r.email ?? '', prettyCode(r.code)]),
+                downloadCsv('invitados.csv', [
+                  ['name', 'email'],
+                  ...result.rows.map((r) => [r.name, r.email ?? '']),
                 ])
               }
             >
@@ -209,11 +191,11 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         <div className="rounded-lg bg-neutral-50 p-3 text-neutral-600">
           <p>
             Lo más simple: pegá la lista del casamiento, <strong>un nombre por renglón</strong>. O un CSV con cabecera{' '}
-            <code className="rounded bg-white px-1">name</code> y, si querés, <code className="rounded bg-white px-1">email</code>,{' '}
-            <code className="rounded bg-white px-1">code</code> y <code className="rounded bg-white px-1">side</code> (novia, novio o ambos).
+            <code className="rounded bg-white px-1">name</code> y, si querés, <code className="rounded bg-white px-1">email</code> y{' '}
+            <code className="rounded bg-white px-1">side</code> (novia, novio o ambos).
           </p>
           <p className="mt-1">
-            Si no ponés código, se genera uno para los nuevos y los que ya estaban conservan el suyo. Sirve coma o punto y coma.
+            Volver a importar la misma lista no duplica a nadie. Sirve coma o punto y coma.
           </p>
         </div>
         <label className={`${btn.secondary} cursor-pointer`}>
@@ -259,11 +241,10 @@ function EditGuestModal({
 }) {
   const [name, setName] = useState(guest.name)
   const [side, setSide] = useState<Side | ''>(guest.side ?? '')
-  const [code, setCode] = useState(guest.code)
   const [role, setRole] = useState<Role>(guest.role ?? 'guest')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<'code' | 'delete' | 'sessions' | 'release' | null>(null)
+  const [confirm, setConfirm] = useState<'delete' | 'sessions' | 'release' | null>(null)
 
   const run = async (label: string, fn: () => Promise<void>) => {
     setBusy(label)
@@ -309,77 +290,32 @@ function EditGuestModal({
           <SideSelect value={side} onChange={setSide} />
         </label>
 
-        {code === null ? (
-          <div>
-            <span className="mb-1 block font-medium">Código de acceso</span>
+        <div>
+          <span className="mb-1 block font-medium">Acceso</span>
+          {!guest.claimed ? (
             <p className="text-xs text-neutral-500">
-              Es {ROLE_LABELS[role].toLowerCase()}: solo un superadministrador puede ver su código, generarle uno nuevo o cerrar sus sesiones.
+              {guest.userId
+                ? 'Le reiniciaron el PIN: la próxima vez que entre inventa uno nuevo.'
+                : 'Todavía no se registró: entra buscando su nombre cuando el registro esté abierto.'}
             </p>
-          </div>
-        ) : (
-          <>
-            <div>
-              <span className="mb-1 block font-medium">Código de acceso</span>
-              <div className="flex items-center gap-2">
-                <span className="flex-1 rounded-lg bg-neutral-100 px-3 py-2 font-mono tracking-widest">{prettyCode(code)}</span>
-                <button
-                  type="button"
-                  className={btn.secondary}
-                  onClick={async () => notify((await copy(prettyCode(code))) ? 'Código copiado' : 'No se pudo copiar')}
-                >
-                  <Copy size={15} /> Copiar
-                </button>
-              </div>
-              <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('code')}>
-                Generar un código nuevo
+          ) : guest.code === null ? (
+            <p className="text-xs text-neutral-500">
+              Es {ROLE_LABELS[role].toLowerCase()}: solo un superadministrador puede reiniciar su PIN o cerrar sus sesiones.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-neutral-500">Ya se registró: entra con su nombre y su PIN.</p>
+              <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('release')}>
+                Reiniciar su PIN
               </button>
-            </div>
-
-            <div>
-              {/* El enlace entra con email + codigo: quien esta en la lista solo con el nombre entra con el QR de la fiesta */}
-              {guest.email ? (
-                <>
-                  <span className="mb-1 block font-medium">Enlace de invitación</span>
-                  <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={btn.secondary}
-                      onClick={async () =>
-                        notify(
-                          (await copy(inviteUrl(window.location.origin, guest.email!, code))) ? 'Enlace copiado' : 'No se pudo copiar'
-                        )
-                      }
-                    >
-                      <Copy size={15} /> Copiar enlace
-                    </button>
-                    {/* Quien entro con el QR de la fiesta no tiene email real */}
-                    {hasRealEmail(guest.email) && (
-                      <a
-                        className={btn.secondary}
-                        href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
-                      >
-                        <Mail size={15} /> Enviar por email
-                      </a>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-neutral-500">Está en la lista solo con el nombre: entra eligiéndose con el QR de la fiesta.</p>
-              )}
-              {guest.claimed && (
-                <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('release')}>
-                  Liberar su nombre
-                </button>
-              )}
               {guest.userId && (
                 <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
                   Cerrar sus sesiones abiertas
                 </button>
               )}
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
         {isSuper && guest.userId && (
           <label className="block">
@@ -425,30 +361,16 @@ function EditGuestModal({
         </div>
       </div>
 
-      {confirm === 'code' && (
-        <ConfirmDialog
-          title="Generar un código nuevo"
-          message="El código anterior deja de funcionar. Si ya le enviaste la invitación o imprimiste la tarjeta, vas a tener que darle el nuevo."
-          confirmLabel="Generar código"
-          onClose={() => setConfirm(null)}
-          onConfirm={async () => {
-            const r = await adminJson<{ code: string | null }>(`/api/admin/guests/${guest.id}`, { method: 'PATCH', json: { newCode: true } })
-            setCode(r.code)
-            onChanged()
-            notify('Código nuevo generado')
-          }}
-        />
-      )}
       {confirm === 'release' && (
         <ConfirmDialog
-          title={`Liberar el nombre de ${guest.name}`}
-          message="Sirve si cambió de celular: se cierran sus sesiones y puede volver a elegirse de la lista con el QR de la fiesta. Sigue siendo la misma cuenta (perfil, matches y chats). Hacelo solo si confirmaste que es esa persona."
-          confirmLabel="Liberar nombre"
+          title={`Reiniciar el PIN de ${guest.name}`}
+          message="Sirve si se olvidó el PIN (o si otra persona se registró con su nombre): se borra el PIN y se cierran sus sesiones. La próxima vez que entre busca su nombre e inventa uno nuevo, aunque el registro esté cerrado. Sigue siendo la misma cuenta (perfil, matches y chats). Hacelo solo si confirmaste que es esa persona."
+          confirmLabel="Reiniciar PIN"
           onClose={() => setConfirm(null)}
           onConfirm={async () => {
             await adminJson(`/api/admin/guests/${guest.id}/release`, { method: 'POST' })
             onChanged()
-            notify('Nombre liberado: ya puede volver a elegirse')
+            notify('PIN reiniciado: ya puede inventar uno nuevo')
           }}
         />
       )}
@@ -546,9 +468,9 @@ function GuestsInner() {
         all.push(...d.guests)
         if (d.guests.length === 0 || all.length >= d.total) break
       }
-      downloadCsv('invitados-con-codigos.csv', [
-        ['name', 'email', 'code', 'side'],
-        ...all.map((g) => [g.name, hasRealEmail(g.email) ? g.email : '', prettyCode(g.code), g.side ?? '']),
+      downloadCsv('invitados.csv', [
+        ['name', 'email', 'side'],
+        ...all.map((g) => [g.name, hasRealEmail(g.email) ? g.email : '', g.side ?? '']),
       ])
       show(`${all.length} invitados descargados`)
     } catch (e) {
@@ -624,7 +546,6 @@ function GuestsInner() {
                 )}
                 <span className="text-xs text-neutral-500">{sideText(g.side)}</span>
               </div>
-              <span className="font-mono text-sm tracking-wider text-neutral-700">{prettyCode(g.code)}</span>
               <button type="button" className={btn.secondary} onClick={() => setEditing(g)} aria-label={`Editar a ${g.name}`}>
                 Editar
               </button>
