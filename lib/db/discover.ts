@@ -75,3 +75,15 @@ export const recordSwipe = async (
     target,
   }
 }
+
+// Cuantos de los que la persona paso siguen en Descubrir (para ofrecer volver a verlos)
+export const skippedCount = async (userId: string) => {
+  const [r] = await callFn<{ out_count: number }>('skipped_count', { p_user: userId })
+  return r?.out_count ?? 0
+}
+
+// Los que paso vuelven a Descubrir (no toca los "me gusta" ni los matches). Devuelve cuantos volvieron.
+export const resetSkips = async (userId: string) => {
+  const [r] = await callFn<{ out_count: number }>('reset_skips', { p_user: userId })
+  return r?.out_count ?? 0
+}

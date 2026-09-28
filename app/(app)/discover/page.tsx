@@ -19,6 +19,9 @@ export default function DiscoverPage() {
   const [deck, setDeck] = useState<DiscoverProfile[]>([])
   const [loaded, setLoaded] = useState(false)
   const [exhausted, setExhausted] = useState(false)
+  // Cuantos de los que paso puede volver a ver cuando se termina el mazo
+  const [skipped, setSkipped] = useState(0)
+  const [restoring, setRestoring] = useState(false)
   const [info, setInfo] = useState<DiscoverProfile | null>(null)
   const [match, setMatch] = useState<MatchInfo | null>(null)
   const [myPhoto, setMyPhoto] = useState<string | null>(null)
@@ -55,7 +58,8 @@ export default function DiscoverPage() {
       }
       if (!res.ok) throw new Error()
 
-      const { profiles } = (await res.json()) as { profiles: DiscoverProfile[] }
+      const { profiles, skipped: skippedNow } = (await res.json()) as { profiles: DiscoverProfile[]; skipped?: number }
+      setSkipped(skippedNow ?? 0)
       const fresh = profiles.filter((p) => !seen.current.has(p.id))
       fresh.forEach((p) => seen.current.add(p.id))
       setDeck((d) => [...d, ...fresh])
@@ -112,6 +116,20 @@ export default function DiscoverPage() {
     setLoaded(false)
   }
 
+  const showSkipped = async () => {
+    setRestoring(true)
+    try {
+      const res = await authFetch('/api/swipes/reset', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'No se pudo')
+      reload()
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'No se pudo')
+    } finally {
+      setRestoring(false)
+    }
+  }
+
   const [top, next] = deck
 
   return (
@@ -134,14 +152,31 @@ export default function DiscoverPage() {
           <div className="flex h-full flex-col items-center justify-center rounded-[2rem] bg-cream px-8 text-center">
             <p className="text-lg font-semibold">Ya viste a todos por ahora</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Cuando lleguen más invitados los vas a ver acá.
+              {skipped > 0
+                ? 'Podés darle otra oportunidad a los que pasaste, o esperar a que lleguen más invitados.'
+                : 'Cuando lleguen más invitados los vas a ver acá.'}
             </p>
+            {skipped > 0 && (
+              <button
+                type="button"
+                onClick={showSkipped}
+                disabled={restoring}
+                className="mt-5 flex items-center gap-2 rounded-2xl bg-brand px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {restoring ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+                Volver a ver los que pasaste ({skipped})
+              </button>
+            )}
             <button
               type="button"
               onClick={reload}
-              className="mt-5 flex items-center gap-2 rounded-2xl bg-brand px-5 py-2.5 text-sm font-medium text-white"
+              className={
+                skipped > 0
+                  ? 'mt-3 text-sm font-medium text-brand underline'
+                  : 'mt-5 flex items-center gap-2 rounded-2xl bg-brand px-5 py-2.5 text-sm font-medium text-white'
+              }
             >
-              <RotateCcw size={16} /> Buscar de nuevo
+              {skipped === 0 && <RotateCcw size={16} />} Buscar de nuevo
             </button>
           </div>
         )}
