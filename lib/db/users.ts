@@ -1,23 +1,7 @@
-// Cuentas: login, rol y sesiones
+// Cuentas: rol y sesiones (el login de invitados esta en guest-login.ts)
 import type { Role } from '@/lib/roles'
 import { forgetSession } from '@/lib/session'
 import { callFn } from '@/lib/db/core'
-
-export type DbUser = { id: string; email: string; role: Role; sessionVersion: number }
-
-// Sin resultado = el email o el codigo no corresponden a un invitado
-export const findGuest = async (email: string, code: string) => {
-  const [r] = await callFn<{ out_id: string }>('find_guest', { p_email: email, p_code: code })
-  return r ? { id: r.out_id } : null
-}
-
-// Crea el user en el primer login; no toca role si ya existe
-export const upsertUser = async (email: string): Promise<DbUser> => {
-  const [r] = await callFn<{ out_id: string; out_email: string; out_role: Role; out_version: number }>('upsert_user', {
-    p_email: email,
-  })
-  return { id: r.out_id, email: r.out_email, role: r.out_role, sessionVersion: r.out_version }
-}
 
 // Version de sesion y rol actuales (null = el usuario ya no existe). Lo usa getAuth en cada pedido.
 export const getSessionInfo = async (userId: string): Promise<{ version: number; role: Role } | null> => {
