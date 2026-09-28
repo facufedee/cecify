@@ -9,7 +9,8 @@ if (!email || !['guest', 'admin', 'superadmin'].includes(role)) {
   process.exit(1)
 }
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+// Sin el /rest/v1 que a veces se pega de mas (con eso todas las consultas fallan)
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(new RegExp('/rest/v1/?$'), '').replace(new RegExp('/+$'), '')
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!url || !key) {
   console.error('Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.local')

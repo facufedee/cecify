@@ -22,13 +22,17 @@ const section = (title) => console.log(`\n${title}`)
 
 // ---- Variables ----
 section('Variables de entorno')
-const url = env.NEXT_PUBLIC_SUPABASE_URL
+const rawUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+// Igual que la app (lib/supabase.ts): sin el /rest/v1 que a veces se pega de mas
+const url = rawUrl?.replace(new RegExp('/rest/v1/?$'), '').replace(new RegExp('/+$'), '')
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 const publicKey = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (env.LOCAL_DB === '1') warn('LOCAL_DB=1: la app usa la base local, no Supabase', 'Para probar contra Supabase, comentá LOCAL_DB en .env.local')
-if (!url || !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url)) {
+if (!url || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) {
   bad('NEXT_PUBLIC_SUPABASE_URL falta o no parece una URL de Supabase', 'Supabase → Project Settings → Data API → Project URL')
+} else if (rawUrl !== url) {
+  warn('NEXT_PUBLIC_SUPABASE_URL tiene algo de mas al final (p. ej. /rest/v1/)', `La app lo tolera, pero dejala como ${url} (tambien en Vercel)`)
 } else ok('NEXT_PUBLIC_SUPABASE_URL')
 if (!serviceKey) bad('Falta SUPABASE_SERVICE_ROLE_KEY', 'Supabase → Project Settings → API Keys → service_role / secret (NUNCA en una variable NEXT_PUBLIC_)')
 else ok('SUPABASE_SERVICE_ROLE_KEY')
@@ -100,10 +104,15 @@ else ok('bucket profile-photos (publico)')
 section('Clave publica (la que podria tener cualquiera)')
 if (publicKey) {
   const anon = createClient(url, publicKey, { auth: { persistSession: false } })
+  // Solo cuenta como cerrado lo que Supabase responde de verdad: 0 filas por RLS o permiso denegado.
+  // Cualquier otro error (URL mal, sin conexion) no prueba nada.
+  const denied = (e) => e && (e.code === '42501' || /permission denied/i.test(e.message))
+  const unproven = (what, e) => warn(`No se pudo probar ${what}: ${e.message}`)
   for (const table of ['users', 'guests', 'profiles', 'messages', 'admin_accounts', 'event_access']) {
     const { data, error } = await anon.from(table).select('*').limit(1)
-    if (!error && data && data.length > 0) bad(`La clave publica LEE la tabla ${table}`, 'Revisá RLS: todas las tablas tienen que tener RLS sin policies')
-    else ok(`no lee ${table}`)
+    if (!error && data?.length > 0) bad(`La clave publica LEE la tabla ${table}`, 'Revisá RLS: todas las tablas tienen que tener RLS sin policies')
+    else if (!error || denied(error)) ok(`no lee ${table}`)
+    else unproven(`la tabla ${table}`, error)
   }
   for (const [fn, args] of [
     ['find_guest', { p_email: 'x@x.com', p_code: 'XXXXXXXX' }],
@@ -113,7 +122,9 @@ if (publicKey) {
   ]) {
     const { error } = await anon.rpc(fn, args)
     if (!error) bad(`La clave publica PUEDE llamar a ${fn}`, 'Falta el REVOKE de esa funcion en su migracion')
-    else ok(`no puede llamar a ${fn}`)
+    // Sin permiso, PostgREST responde 42501 o directamente que no la encuentra (no se la muestra a anon)
+    else if (denied(error) || (schemaOk && notFound(error))) ok(`no puede llamar a ${fn}`)
+    else unproven(`la funcion ${fn}`, error)
   }
 }
 
