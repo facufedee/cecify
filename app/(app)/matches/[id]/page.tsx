@@ -65,6 +65,7 @@ export default function ChatPage() {
   const myId = getSessionUserId()
   const otherName = useRef('Nuevo mensaje')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const stickToBottom = useRef(true) // false si la persona subio a mirar mensajes viejos
   const heightBeforeOlder = useRef<number | null>(null) // para no perder el lugar al sumar mensajes arriba
   const lastAt = useRef<string | null>(null)
@@ -455,12 +456,22 @@ export default function ChatPage() {
         onSubmit={(e) => {
           e.preventDefault()
           void send(text)
+          // El teclado queda abierto para seguir escribiendo (como en cualquier app de chat)
+          inputRef.current?.focus()
         }}
         className="flex items-center gap-2 border-t border-neutral-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3"
       >
         <input
+          ref={inputRef}
           value={text}
           onChange={(e) => onInput(e.target.value)}
+          // La tecla del teclado dice "enviar"; Enter manda sin la accion "ir" del teclado, que en Android lo cierra
+          enterKeyHint="send"
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+            e.preventDefault()
+            void send(text)
+          }}
           maxLength={MAX_LENGTH}
           placeholder="Escribí un mensaje…"
           aria-label="Mensaje"
@@ -471,6 +482,8 @@ export default function ChatPage() {
           type="submit"
           disabled={!text.trim()}
           aria-label="Enviar"
+          // Tocar el boton no le saca el foco al campo: si no, al vaciarse se desactiva y se cierra el teclado
+          onPointerDown={(e) => e.preventDefault()}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white transition disabled:opacity-40"
         >
           <Send size={18} />
