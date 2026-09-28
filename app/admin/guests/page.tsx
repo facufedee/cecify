@@ -8,7 +8,7 @@ import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Mod
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { prettyCode } from '@/lib/format'
-import { contactLabel, isEventEmail } from '@/lib/event'
+import { contactLabel, hasRealEmail } from '@/lib/event'
 import { inviteMailto, inviteUrl } from '@/lib/invite'
 import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
@@ -56,7 +56,7 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
         method: 'POST',
         json: { name, email, ...(side ? { side } : {}) },
       })
-      setSaved({ code: r.code, created: r.created, email })
+      setSaved({ code: r.code, created: r.created, email: email.trim() || name.trim() })
       onDone()
     } catch (err) {
       setError(errorMessage(err))
@@ -99,8 +99,13 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
           <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required autoFocus />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Email</span>
-          <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} required />
+          <span className="mb-1 block font-medium">
+            Email <span className="font-normal text-neutral-500">(opcional)</span>
+          </span>
+          <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+          <span className="mt-1 block text-xs text-neutral-500">
+            Sin email, la persona entra eligiéndose de la lista con el QR de la fiesta. Con email también puede usar su código.
+          </span>
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-medium">De parte de quién viene</span>
@@ -112,7 +117,7 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
           <button type="button" className={btn.secondary} onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className={btn.primary} disabled={busy || !name.trim() || !email.trim()}>
+          <button type="submit" className={btn.primary} disabled={busy || !name.trim()}>
             {busy && <Loader2 size={16} className="animate-spin" />} Agregar
           </button>
         </div>
@@ -124,7 +129,7 @@ function AddGuestModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
 type ImportResult = {
   created: number
   updated: number
-  rows: { name: string; email: string; code: string | null; created: boolean }[]
+  rows: { name: string; email: string | null; code: string | null; created: boolean }[]
   errors: { line: number; message: string }[]
 }
 
@@ -183,7 +188,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
               onClick={() =>
                 downloadCsv('invitados-con-codigos.csv', [
                   ['name', 'email', 'code'],
-                  ...result.rows.map((r) => [r.name, r.email, prettyCode(r.code)]),
+                  ...result.rows.map((r) => [r.name, r.email ?? '', prettyCode(r.code)]),
                 ])
               }
             >
@@ -203,7 +208,8 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       <div className="space-y-4 text-sm">
         <div className="rounded-lg bg-neutral-50 p-3 text-neutral-600">
           <p>
-            La primera fila tiene que ser la cabecera: <code className="rounded bg-white px-1">name,email</code> y, si querés,{' '}
+            Lo más simple: pegá la lista del casamiento, <strong>un nombre por renglón</strong>. O un CSV con cabecera{' '}
+            <code className="rounded bg-white px-1">name</code> y, si querés, <code className="rounded bg-white px-1">email</code>,{' '}
             <code className="rounded bg-white px-1">code</code> y <code className="rounded bg-white px-1">side</code> (novia, novio o ambos).
           </p>
           <p className="mt-1">
@@ -221,7 +227,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
             rows={8}
             value={csv}
             onChange={(e) => setCsv(e.target.value)}
-            placeholder={'name,email,side\nAna Pérez,ana@ejemplo.com,novia\nLuis Gómez,luis@ejemplo.com,novio'}
+            placeholder={'Ana Pérez\nLuis Gómez\nMariana López'}
           />
         </label>
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -257,7 +263,7 @@ function EditGuestModal({
   const [role, setRole] = useState<Role>(guest.role ?? 'guest')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<'code' | 'delete' | 'sessions' | null>(null)
+  const [confirm, setConfirm] = useState<'code' | 'delete' | 'sessions' | 'release' | null>(null)
 
   const run = async (label: string, fn: () => Promise<void>) => {
     setBusy(label)
@@ -330,30 +336,42 @@ function EditGuestModal({
             </div>
 
             <div>
-              <span className="mb-1 block font-medium">Enlace de invitación</span>
-              <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={btn.secondary}
-                  onClick={async () =>
-                    notify(
-                      (await copy(inviteUrl(window.location.origin, guest.email, code))) ? 'Enlace copiado' : 'No se pudo copiar'
-                    )
-                  }
-                >
-                  <Copy size={15} /> Copiar enlace
+              {/* El enlace entra con email + codigo: quien esta en la lista solo con el nombre entra con el QR de la fiesta */}
+              {guest.email ? (
+                <>
+                  <span className="mb-1 block font-medium">Enlace de invitación</span>
+                  <p className="mb-2 text-xs text-neutral-500">Quien lo abre entra directo, sin escribir nada. Tratalo como el código: da acceso.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={btn.secondary}
+                      onClick={async () =>
+                        notify(
+                          (await copy(inviteUrl(window.location.origin, guest.email!, code))) ? 'Enlace copiado' : 'No se pudo copiar'
+                        )
+                      }
+                    >
+                      <Copy size={15} /> Copiar enlace
+                    </button>
+                    {/* Quien entro con el QR de la fiesta no tiene email real */}
+                    {hasRealEmail(guest.email) && (
+                      <a
+                        className={btn.secondary}
+                        href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
+                      >
+                        <Mail size={15} /> Enviar por email
+                      </a>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-neutral-500">Está en la lista solo con el nombre: entra eligiéndose con el QR de la fiesta.</p>
+              )}
+              {guest.claimed && (
+                <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('release')}>
+                  Liberar su nombre
                 </button>
-                {/* Quien entro con el QR de la fiesta no tiene email real */}
-                {!isEventEmail(guest.email) && (
-                  <a
-                    className={btn.secondary}
-                    href={inviteMailto({ name, email: guest.email, code }, inviteUrl(window.location.origin, guest.email, code))}
-                  >
-                    <Mail size={15} /> Enviar por email
-                  </a>
-                )}
-              </div>
+              )}
               {guest.userId && (
                 <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
                   Cerrar sus sesiones abiertas
@@ -418,6 +436,19 @@ function EditGuestModal({
             setCode(r.code)
             onChanged()
             notify('Código nuevo generado')
+          }}
+        />
+      )}
+      {confirm === 'release' && (
+        <ConfirmDialog
+          title={`Liberar el nombre de ${guest.name}`}
+          message="Sirve si cambió de celular: se cierran sus sesiones y puede volver a elegirse de la lista con el QR de la fiesta. Sigue siendo la misma cuenta (perfil, matches y chats). Hacelo solo si confirmaste que es esa persona."
+          confirmLabel="Liberar nombre"
+          onClose={() => setConfirm(null)}
+          onConfirm={async () => {
+            await adminJson(`/api/admin/guests/${guest.id}/release`, { method: 'POST' })
+            onChanged()
+            notify('Nombre liberado: ya puede volver a elegirse')
           }}
         />
       )}
@@ -517,7 +548,7 @@ function GuestsInner() {
       }
       downloadCsv('invitados-con-codigos.csv', [
         ['name', 'email', 'code', 'side'],
-        ...all.map((g) => [g.name, g.email, prettyCode(g.code), g.side ?? '']),
+        ...all.map((g) => [g.name, hasRealEmail(g.email) ? g.email : '', prettyCode(g.code), g.side ?? '']),
       ])
       show(`${all.length} invitados descargados`)
     } catch (e) {
@@ -584,6 +615,8 @@ function GuestsInner() {
                 {g.role && g.role !== 'guest' && <Badge tone="blue">{ROLE_LABELS[g.role]}</Badge>}
                 {!g.userId ? (
                   <Badge>No entró</Badge>
+                ) : !g.claimed ? (
+                  <Badge tone="amber">Nombre liberado</Badge>
                 ) : g.hasProfile ? (
                   <Badge tone="green">Perfil listo</Badge>
                 ) : (

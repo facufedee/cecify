@@ -44,6 +44,10 @@ export const instagramFromEventEmail = (email: string | null | undefined) => {
   return m ? m[1] : null
 }
 
+// Email de verdad (se le puede escribir). No: sin email, los internos del QR (whatsapp/instagram) ni los de quien se
+// eligio de la lista sin email (g-<id>@lista.invalid)
+export const hasRealEmail = (email: string | null | undefined): email is string => Boolean(email) && !email!.endsWith('.invalid')
+
 // Cuenta creada con el QR de la fiesta (con cualquiera de los dos datos)
 export const isEventEmail = (email: string) => phoneFromEventEmail(email) !== null || instagramFromEventEmail(email) !== null
 
@@ -58,11 +62,12 @@ export const prettyPhone = (phone: string) => {
 }
 
 // Como se muestra en el panel: el WhatsApp para quien entro con el QR, el email para el resto
-export const contactLabel = (email: string) => {
+export const contactLabel = (email: string | null) => {
   const phone = phoneFromEventEmail(email)
   if (phone) return `WhatsApp ${prettyPhone(phone)}`
   const ig = instagramFromEventEmail(email)
-  return ig ? `Instagram @${ig}` : email
+  if (ig) return `Instagram @${ig}`
+  return hasRealEmail(email) ? email : 'Sin email (de la lista)'
 }
 
 export const eventJoinUrl = (origin: string, key: string) => `${origin.replace(/\/+$/, '')}/entrar#k=${encodeURIComponent(key)}`

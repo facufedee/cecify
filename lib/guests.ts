@@ -34,7 +34,8 @@ export const parseSide = (raw: string | undefined | null): Side | null | undefin
   return SIDE_ALIASES[v]
 }
 
-export type CsvGuest = { name: string; email: string; code: string | null; side: Side | null | undefined }
+// email null = cargado solo con el nombre (entra eligiendose de la lista con el QR de la fiesta)
+export type CsvGuest = { name: string; email: string | null; code: string | null; side: Side | null | undefined }
 export type CsvResult = {
   guests: CsvGuest[]
   errors: { line: number; message: string }[]
@@ -43,7 +44,8 @@ export type CsvResult = {
 
 export const CSV_MAX_ROWS = 1000
 
-// CSV con cabecera name,email[,code][,side]. Acepta coma o punto y coma (Excel en espanol) y BOM.
+// CSV con cabecera name[,email][,code][,side] (el email es opcional). Acepta coma o punto y coma (Excel en espanol)
+// y BOM. Tambien acepta la lista pegada tal cual: un nombre por renglon, sin cabecera.
 // `side` es undefined si el CSV no trae esa columna (no se toca el lado de los que ya existen).
 export const parseGuestsCsv = (text: string): CsvResult => {
   const lines = text
@@ -60,19 +62,22 @@ export const parseGuestsCsv = (text: string): CsvResult => {
 
   const header = split(lines[0].text).map((h) => h.toLowerCase())
   const col = (names: string[]) => header.findIndex((h) => names.includes(h))
-  const iName = col(['name', 'nombre'])
+  let iName = col(['name', 'nombre'])
   const iEmail = col(['email', 'mail', 'correo'])
   const iCode = col(['code', 'codigo', 'código'])
   const iSide = col(['side', 'lado'])
-  if (iName < 0 || iEmail < 0) {
+  // Lista pegada tal cual (un nombre por renglon, sin cabecera): todas las filas son nombres
+  const plainList = iName < 0 && lines.every((l) => !l.text.includes(delimiter))
+  if (plainList) iName = 0
+  else if (iName < 0) {
     return {
       guests: [],
-      errors: [{ line: lines[0].line, message: 'La primera fila tiene que tener las columnas name y email' }],
+      errors: [{ line: lines[0].line, message: 'La primera fila tiene que tener la columna name (o pegá un nombre por renglón)' }],
       hasSideColumn: false,
     }
   }
 
-  const rows = lines.slice(1)
+  const rows = plainList ? lines : lines.slice(1)
   if (rows.length > CSV_MAX_ROWS) {
     return { guests: [], errors: [{ line: 1, message: `Como máximo ${CSV_MAX_ROWS} invitados por archivo` }], hasSideColumn: iSide >= 0 }
   }
@@ -82,7 +87,7 @@ export const parseGuestsCsv = (text: string): CsvResult => {
   for (const { text: raw, line } of rows) {
     const c = split(raw)
     const name = c[iName] ?? ''
-    const email = (c[iEmail] ?? '').toLowerCase()
+    const email = iEmail >= 0 ? (c[iEmail] ?? '').toLowerCase() : ''
     const rawCode = iCode >= 0 ? (c[iCode] ?? '') : ''
     const code = rawCode ? normalizeCode(rawCode) : null
 
@@ -90,28 +95,30 @@ export const parseGuestsCsv = (text: string): CsvResult => {
       errors.push({ line, message: 'Nombre vacío o demasiado largo' })
       continue
     }
-    if (email.length > 255 || !EMAIL_RE.test(email)) {
-      errors.push({ line, message: `Email inválido: ${email || '(vacío)'}` })
+    if (email && (email.length > 255 || !EMAIL_RE.test(email))) {
+      errors.push({ line, message: `Email inválido: ${email}` })
       continue
     }
-    if (seen.has(email)) {
-      errors.push({ line, message: `Email repetido en el archivo: ${email}` })
+    // Sin email se reconoce por el nombre (sin mayusculas ni acentos)
+    const key = email || `nombre:${name.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()}`
+    if (seen.has(key)) {
+      errors.push({ line, message: email ? `Email repetido en el archivo: ${email}` : `Nombre repetido en el archivo: ${name}` })
       continue
     }
     if (code && !isValidCode(code)) {
-      errors.push({ line, message: `Código inválido para ${email}` })
+      errors.push({ line, message: `Código inválido para ${email || name}` })
       continue
     }
     let side: Side | null | undefined = undefined
     if (iSide >= 0) {
       side = parseSide(c[iSide])
       if (side === undefined) {
-        errors.push({ line, message: `Lado no reconocido para ${email} (usá novia, novio o ambos)` })
+        errors.push({ line, message: `Lado no reconocido para ${email || name} (usá novia, novio o ambos)` })
         continue
       }
     }
-    seen.add(email)
-    guests.push({ name, email, code, side })
+    seen.add(key)
+    guests.push({ name, email: email || null, code, side })
   }
 
   return { guests, errors, hasSideColumn: iSide >= 0 }

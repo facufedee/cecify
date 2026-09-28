@@ -50,13 +50,14 @@ export const adminStats = async (actorId: string): Promise<AdminStats | null> =>
 export type AdminGuest = {
   id: string
   name: string
-  email: string
+  email: string | null // null = cargado solo con el nombre (lista de casamiento)
   code: string | null // null = cuenta con rol: solo un superadmin ve su codigo
   side: Side | null
   createdAt: string
   userId: string | null // null = todavia no inicio sesion
   role: Role | null
   hasProfile: boolean
+  claimed: boolean // ya se eligio de la lista o entro con su codigo
 }
 
 export const adminListGuests = async (
@@ -66,13 +67,14 @@ export const adminListGuests = async (
   const rows = await callFn<{
     guest_id: string
     guest_name: string
-    guest_email: string
+    guest_email: string | null
     guest_code: string | null
     guest_side: Side | null
     created_at: Ts
     user_id: string | null
     user_role: Role | null
     has_profile: boolean
+    guest_claimed: boolean
     total_count: number | string
   }>('admin_list_guests', {
     p_actor: actorId,
@@ -92,6 +94,7 @@ export const adminListGuests = async (
       userId: r.user_id,
       role: r.user_role,
       hasProfile: r.has_profile,
+      claimed: r.guest_claimed,
     })),
   }
 }
@@ -99,7 +102,7 @@ export const adminListGuests = async (
 // side: undefined = no cambiar, null = quitar. null = sin permiso.
 export const adminUpsertGuest = async (
   actorId: string,
-  input: { name: string; email: string; code: string; side?: Side | null; replaceCode?: boolean }
+  input: { name: string; email: string | null; code: string; side?: Side | null; replaceCode?: boolean }
 ) => {
   const [r] = await callFn<{ out_id: string; out_code: string | null; out_created: boolean }>('admin_upsert_guest', {
     p_actor: actorId,
@@ -137,6 +140,18 @@ export const adminDeleteGuest = async (actorId: string, guestId: string): Promis
   })
   // La funcion no dice a quien borro: se olvidan todas las sesiones en cache para que su token deje de servir ya
   if (r?.out_status === 'ok') clearSessionCache()
+  return r?.out_status ?? 'forbidden'
+}
+
+export type ReleaseGuestStatus = 'ok' | 'forbidden' | 'not_found' | 'not_claimed'
+
+// Libera el nombre para que se pueda volver a elegir de la lista (cierra sus sesiones; la cuenta se conserva)
+export const adminReleaseGuest = async (actorId: string, guestId: string): Promise<ReleaseGuestStatus> => {
+  const [r] = await callFn<{ out_status: ReleaseGuestStatus; out_user: string | null }>('admin_release_guest', {
+    p_actor: actorId,
+    p_guest: guestId,
+  })
+  if (r?.out_user) forgetSession(r.out_user)
   return r?.out_status ?? 'forbidden'
 }
 
