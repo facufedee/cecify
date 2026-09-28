@@ -118,8 +118,9 @@ export default function AdminEventPage() {
           <div>
             <h2 className="text-base font-semibold">QR de la fiesta</h2>
             <p className="mt-1 text-sm text-neutral-600">
-              Un mismo QR para la entrada y todas las mesas. Quien lo escanea pone su nombre y su WhatsApp y entra, sin estar
-              cargado antes. Solo funciona en el horario que elijas.
+              Un mismo QR para la entrada y todas las mesas. Quien lo escanea busca su nombre en la lista de invitados (sección
+              Invitados) y se elige; si no está en la lista, entra con su nombre y WhatsApp. Solo funciona en el horario que
+              elijas.
             </p>
           </div>
 

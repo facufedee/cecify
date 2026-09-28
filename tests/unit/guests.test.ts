@@ -65,10 +65,28 @@ describe('parseGuestsCsv', () => {
     expect(r.errors[4].message).toMatch(/lado/i)
   })
 
-  it('exige cabecera con name y email, archivo no vacio y un maximo de filas', () => {
+  it('exige la columna name (si hay columnas), archivo no vacio y un maximo de filas', () => {
     expect(parseGuestsCsv('').errors[0].message).toMatch(/vacío/i)
-    expect(parseGuestsCsv('a,b\n1,2').errors[0].message).toMatch(/name y email/i)
+    expect(parseGuestsCsv('a,b\n1,2').errors[0].message).toMatch(/columna name/i)
     const many = 'name,email\n' + Array.from({ length: CSV_MAX_ROWS + 1 }, (_, i) => `G${i},g${i}@x.com`).join('\n')
     expect(parseGuestsCsv(many).errors[0].message).toMatch(/máximo/i)
+  })
+
+  it('la lista del casamiento pegada tal cual: un nombre por renglon, sin cabecera ni email', () => {
+    const r = parseGuestsCsv('Ana Pérez\n\nLuis Gómez\r\nana pérez\n')
+    expect(r.guests).toEqual([
+      { name: 'Ana Pérez', email: null, code: null, side: undefined },
+      { name: 'Luis Gómez', email: null, code: null, side: undefined },
+    ])
+    expect(r.errors).toEqual([{ line: 4, message: 'Nombre repetido en el archivo: ana pérez' }])
+  })
+
+  it('con cabecera el email es opcional (fila por fila)', () => {
+    const r = parseGuestsCsv('name,email,side\nAna,,novia\nLuis,luis@x.com,novio')
+    expect(r.guests).toEqual([
+      { name: 'Ana', email: null, code: null, side: 'bride' },
+      { name: 'Luis', email: 'luis@x.com', code: null, side: 'groom' },
+    ])
+    expect(parseGuestsCsv('name\nAna\nLuis').guests.map((g) => g.email)).toEqual([null, null])
   })
 })

@@ -44,13 +44,14 @@ export async function POST(req: Request) {
     }
 
     const name = typeof body.name === 'string' ? body.name.trim() : ''
+    // El email es opcional: sin email la persona entra eligiendose de la lista con el QR de la fiesta
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     if (!name || name.length > NAME_MAX) return badRequest('Nombre inválido')
-    if (email.length > 255 || !EMAIL_RE.test(email)) return badRequest('Email inválido')
+    if (email && (email.length > 255 || !EMAIL_RE.test(email))) return badRequest('Email inválido')
     const side = body.side === undefined ? undefined : parseSide(String(body.side))
     if (side === undefined && body.side !== undefined) return badRequest('Lado inválido')
 
-    const saved = await addGuest(actor.userId, { name, email, side })
+    const saved = await addGuest(actor.userId, { name, email: email || null, side })
     if (!saved) return badRequest('No tenés permiso para esto', 403)
     return Response.json(saved, { status: saved.created ? 201 : 200 })
   } catch (error) {

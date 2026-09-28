@@ -18,12 +18,12 @@ const withNewCode = async <T>(fn: (code: string) => Promise<T>): Promise<T> => {
 }
 
 // code null = cuenta con rol: solo un superadmin ve (y cambia) su codigo
-export type SavedGuest = { id: string; email: string; code: string | null; created: boolean }
+export type SavedGuest = { id: string; email: string | null; code: string | null; created: boolean }
 
 // Alta de un invitado. Si el email ya existe se actualiza el nombre (y el lado si viene) y se conserva su codigo.
 export const addGuest = async (
   actorId: string,
-  input: { name: string; email: string; side?: Side | null }
+  input: { name: string; email: string | null; side?: Side | null }
 ): Promise<SavedGuest | null> => {
   const saved = await withNewCode((code) => adminUpsertGuest(actorId, { ...input, code }))
   return saved ? { ...saved, email: input.email } : null
@@ -38,7 +38,7 @@ export const regenerateCode = async (actorId: string, guestId: string) => {
 export type ImportSummary = {
   created: number
   updated: number
-  rows: { name: string; email: string; code: string | null; created: boolean }[]
+  rows: { name: string; email: string | null; code: string | null; created: boolean }[]
 }
 
 const BATCH = 10
