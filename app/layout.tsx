@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import MotionProvider from '@/components/app/MotionProvider'
 import RegisterServiceWorker from '@/components/app/RegisterServiceWorker'
+import TouchLock from '@/components/app/TouchLock'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -27,6 +28,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#4A7C59',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   // Con el teclado abierto, Android achica la pagina en vez de empujarla hacia arriba (el chat no pierde el encabezado)
   interactiveWidget: 'resizes-content',
 }
@@ -40,6 +45,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <RegisterServiceWorker />
+        <TouchLock />
         <MotionProvider>{children}</MotionProvider>
       </body>
     </html>

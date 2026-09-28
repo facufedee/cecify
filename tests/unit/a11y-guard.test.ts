@@ -72,9 +72,10 @@ describe('codigo fuente', () => {
     expect(bad).toEqual([])
   })
 
-  it('el zoom del navegador no esta bloqueado', () => {
+  it('el zoom del navegador esta fijado a escala 1 para comportamiento de app nativa', () => {
     const layout = read('app/layout.tsx')
-    expect(layout).not.toMatch(/userScalable|maximumScale|user-scalable|maximum-scale/)
+    expect(layout).toMatch(/userScalable:\s*false/)
+    expect(layout).toMatch(/maximumScale:\s*1/)
   })
 
   it('los estilos globales tienen foco visible, movimiento reducido y tema claro declarado', () => {

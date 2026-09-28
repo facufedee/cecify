@@ -6,6 +6,9 @@ se conocen con un swipe estilo cita, chatean cuando hay match y comparten fotos 
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind 3 · Supabase (Postgres) ·
 Socket.io (repo aparte: `../cecify-socket`) · Vitest.
 
+Cómo está programada por dentro (arquitectura, base de datos, auth, tests y cómo agregar algo nuevo):
+[`docs/COMO-ESTA-PROGRAMADA.md`](docs/COMO-ESTA-PROGRAMADA.md).
+
 ## Empezar (modo local, sin Supabase)
 
 ```bash
@@ -117,7 +120,7 @@ Decisiones de diseño que conviene conocer:
 
 ## Accesibilidad
 
-`tests/unit/a11y-guard.test.ts` protege lo básico (contraste de la paleta calculado, diálogos con `useDialog`, zoom no bloqueado,
+`tests/unit/a11y-guard.test.ts` protege lo básico (contraste de la paleta calculado, diálogos con `useDialog`, zoom fijo para PWA,
 foco visible, movimiento reducido). Para una auditoría completa en el navegador: `npm i --no-save axe-core`, copiar
 `node_modules/axe-core/axe.min.js` a `public/` **temporalmente**, cargarlo en la página y ejecutar `axe.run(document)` en cada
 pantalla (también con un diálogo abierto y con la letra al 200 %). No lo dejes en `public/`.
