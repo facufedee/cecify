@@ -1,5 +1,5 @@
 import { getAuth, unauthorized } from '@/lib/api-auth'
-import { discoverProfiles, getUserContext } from '@/lib/db'
+import { discoverProfiles, getUserContext, skippedCount } from '@/lib/db'
 import type { DiscoverProfile } from '@/lib/profile-schema'
 import { rateLimit } from '@/lib/rate-limit'
 import { UUID_RE } from '@/lib/validators'
@@ -46,7 +46,16 @@ export async function GET(req: Request) {
       commonInterests: p.interests.filter((i) => mine.has(i)),
     }))
 
-    return Response.json({ profiles })
+    // Sin mas perfiles: cuantos de los que paso puede volver a ver
+    // (si falla, el mazo vacio se muestra igual, sin el boton de volver a verlos)
+    const skipped =
+      profiles.length === 0
+        ? await skippedCount(auth.userId).catch((error) => {
+            console.warn('discover skipped_count:', error instanceof Error ? error.message : error)
+            return 0
+          })
+        : 0
+    return Response.json({ profiles, skipped })
   } catch (error) {
     console.error('profiles/discover error:', error)
     return Response.json({ error: 'Error del servidor' }, { status: 500 })
