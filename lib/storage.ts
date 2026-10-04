@@ -30,7 +30,7 @@ export const savePhoto = async (userId: string, jpeg: Buffer) => {
   const supabase = supabaseServer()
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(`${userId}/${file}`, jpeg, { contentType: 'image/jpeg' })
+    .upload(`${userId}/${file}`, jpeg, { contentType: 'image/jpeg', cacheControl: '31536000, immutable' })
   if (error) throw error
   return supabase.storage.from(BUCKET).getPublicUrl(`${userId}/${file}`).data.publicUrl
 }

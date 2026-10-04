@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       .rotate() // respeta la orientacion EXIF; el re-encode elimina el EXIF (incluido GPS)
       // Solo achica (para que no pesen de mas); NUNCA recorta ni agranda: el encuadre lo elige la persona en el editor
       .resize({ width: MAX_WIDTH, height: MAX_HEIGHT, fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 80 })
+      .jpeg({ quality: 80, progressive: true, mozjpeg: true })
       .toBuffer()
 
     const url = await savePhoto(auth.userId, jpeg)

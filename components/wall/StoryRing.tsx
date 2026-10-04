@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 // Avatar con el anillo de gradiente tipico de las historias. Sin `ring`, queda un borde fino.
 export default function StoryRing({
   src,
@@ -12,10 +14,18 @@ export default function StoryRing({
   seen?: boolean // ya vista: el anillo pasa a gris
   alt?: string
 }) {
-  // Sin foto (todavia cargando o sin perfil) queda un circulo neutro: nunca un <img src="">
-  const image = src ? (
+  const [error, setError] = useState(false)
+
+  // Sin foto (todavia cargando, sin perfil o con error) queda un circulo neutro: nunca un <img src=""> roto
+  const image = src && !error ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className="h-full w-full rounded-full border-2 border-white bg-ig-soft object-cover" />
+    <img
+      src={src}
+      alt={alt}
+      decoding="async"
+      onError={() => setError(true)}
+      className="h-full w-full rounded-full border-2 border-white bg-ig-soft object-cover"
+    />
   ) : (
     <span className="block h-full w-full rounded-full border-2 border-white bg-ig-soft" />
   )

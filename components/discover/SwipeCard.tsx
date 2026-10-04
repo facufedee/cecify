@@ -1,6 +1,6 @@
 'use client'
 
-import { useImperativeHandle, useRef, type Ref } from 'react'
+import { useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import { Info } from 'lucide-react'
 import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
@@ -39,6 +39,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
 
   useImperativeHandle(handleRef, () => ({ swipe: fling }))
 
+  const [loaded, setLoaded] = useState(false)
   const shown = profile.interests.slice(0, 3)
 
   return (
@@ -53,12 +54,21 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
       }}
       className="absolute inset-0 touch-pan-y select-none overflow-hidden rounded-[2rem] bg-cream shadow-lg"
     >
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-cream">
+          <span className="h-10 w-10 animate-pulse rounded-full bg-neutral-200" />
+        </div>
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={profile.mainPhotoUrl}
         alt={`Foto de ${profile.name}`}
         draggable={false}
-        className="pointer-events-none h-full w-full object-cover"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`pointer-events-none h-full w-full object-cover transition-opacity duration-300 ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
 

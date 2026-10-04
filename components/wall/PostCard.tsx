@@ -9,6 +9,7 @@ import type { WallPhoto } from '@/lib/db'
 
 type Props = {
   photo: WallPhoto
+  priority?: boolean
   onLike: (photo: WallPhoto) => void
   onOpenComments: (photo: WallPhoto) => void
   onOpenMenu: (photo: WallPhoto) => void
@@ -18,9 +19,11 @@ type Props = {
 const DOUBLE_TAP_MS = 300
 const CAPTION_CLAMP = 90
 
-export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, onOpenAuthor }: Props) {
+export default function PostCard({ photo, priority = false, onLike, onOpenComments, onOpenMenu, onOpenAuthor }: Props) {
   const [burst, setBurst] = useState(0)
   const [expanded, setExpanded] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
   const lastTap = useRef(0)
 
   // Doble toque sobre la foto = me gusta (no lo quita si ya estaba)
@@ -60,15 +63,42 @@ export default function PostCard({ photo, onLike, onOpenComments, onOpenMenu, on
       </header>
 
       <div className="relative select-none overflow-hidden border-y border-ig-soft bg-ig-soft" onClick={onPhotoTap}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photo.photoUrl}
-          alt={photo.caption ?? `Foto de ${photo.authorName}`}
-          draggable={false}
-          loading="lazy"
-          decoding="async"
-          className="max-h-[36rem] w-full object-contain"
-        />
+        {!loaded && !error && (
+          <div className="flex aspect-[4/5] max-h-[36rem] w-full items-center justify-center bg-neutral-100">
+            <span className="h-7 w-7 animate-pulse rounded-full bg-neutral-200" />
+          </div>
+        )}
+        {error ? (
+          <div className="flex aspect-[4/5] max-h-[36rem] w-full flex-col items-center justify-center bg-neutral-100 p-6 text-center text-neutral-500">
+            <p className="text-sm">No se pudo cargar la foto</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setError(false)
+                setLoaded(false)
+              }}
+              className="mt-2 text-xs font-semibold text-ig-link"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={photo.photoUrl}
+            alt={photo.caption ?? `Foto de ${photo.authorName}`}
+            draggable={false}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setError(true)}
+            className={`max-h-[36rem] w-full object-contain transition-opacity duration-300 ${
+              loaded ? 'opacity-100' : 'absolute inset-0 h-full w-full opacity-0'
+            }`}
+          />
+        )}
         <AnimatePresence>
           {burst > 0 && (
             <motion.span

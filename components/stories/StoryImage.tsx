@@ -5,9 +5,24 @@ export default function StoryImage({ src, alt }: { src: string; alt: string }) {
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden draggable={false} className="absolute inset-0 h-full w-full scale-125 object-cover opacity-80 blur-2xl" />
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        draggable={false}
+        loading="eager"
+        decoding="async"
+        className="absolute inset-0 h-full w-full scale-125 object-cover opacity-80 blur-2xl"
+      />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        loading="eager"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-contain"
+      />
     </>
   )
 }

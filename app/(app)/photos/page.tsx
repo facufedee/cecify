@@ -203,10 +203,11 @@ export default function PhotosPage() {
           </div>
         )}
 
-        {photos.map((photo) => (
+        {photos.map((photo, index) => (
           <PostCard
             key={photo.id}
             photo={photo}
+            priority={index < 2}
             onLike={actions.like}
             onOpenComments={actions.openComments}
             onOpenMenu={actions.openMenu}
