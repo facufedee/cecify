@@ -1,6 +1,7 @@
 // Horario del registro de invitados nuevos (panel). La clave del QR ya no se usa: el QR solo abre la app.
 import { callFn, iso } from '@/lib/db/core'
 
+// key: el codigo del casamiento
 export type EventAccess = { key: string; opensAt: string; closesAt: string; joined: number }
 
 // null = todavia no se activo (o sin permiso)
@@ -12,11 +13,11 @@ export const adminGetEventAccess = async (actorId: string): Promise<EventAccess 
   return r ? { key: r.out_key, opensAt: iso(r.out_opens), closesAt: iso(r.out_closes), joined: r.out_joined } : null
 }
 
-// key null = conservar la actual. false = sin permiso.
-export const adminSetEventAccess = async (actorId: string, key: string | null, opensAt: string, closesAt: string) => {
+// Horario del casamiento de quien lo pide. false = sin permiso.
+export const adminSetEventAccess = async (actorId: string, opensAt: string, closesAt: string) => {
   const [r] = await callFn<{ out_ok: boolean }>('admin_set_event_access', {
     p_actor: actorId,
-    p_key: key,
+    p_key: null, // la base la ignora (ya no hay clave de QR); el argumento sigue en la firma
     p_opens: opensAt,
     p_closes: closesAt,
   })

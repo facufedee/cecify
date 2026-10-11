@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   let reportedUserId: unknown = body.reportedUserId
   if (!reportedUserId && isUuid(body.reportedProfileId)) {
     try {
-      reportedUserId = await userIdForProfile(body.reportedProfileId)
+      reportedUserId = await userIdForProfile(body.reportedProfileId, auth.userId)
     } catch {
       return Response.json({ error: 'Error del servidor' }, { status: 500 })
     }
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     switch (type as ReportInput['type']) {
       case 'profile': {
-        const author = await getAuthor(reportedUserId)
+        const author = await getAuthor(reportedUserId, auth.userId)
         if (!author) return invalid('Invitado no encontrado', 404)
         context = author
         break

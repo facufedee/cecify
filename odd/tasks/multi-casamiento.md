@@ -44,8 +44,11 @@ unicidades (`users.email`, `guests.email`, `guests.access_code`) son globales.
       mismo casamiento en acciones entre usuarios; tests de aislamiento — delegada (writer).
       40 funciones redefinidas, helper `same_wedding`. RED 17/17 → GREEN.
       Checks: tests/db 234/234, npm test 365/365, tsc ok.
-- [ ] T3 API: entrada de invitados con código (buscar/registrar/login), crear casamiento,
-      datos del casamiento actual, ajustes de nombres/código para dueños — delegada (writer)
+- [x] T3 API: entrada de invitados con código (buscar/registrar/login), crear casamiento,
+      datos del casamiento actual, ajustes de nombres/código para dueños — delegada (writer).
+      Endpoints: POST /api/weddings, GET /api/weddings/by-code, GET /api/wedding,
+      PATCH /api/admin/wedding; `code?` opcional en guest search/register/login.
+      Checks: npm test 380/380, tsc ok, lint 0 errores, build ok.
 - [ ] T4 UI: paso de código en /login, link `/c/[code]`, página "Crear tu casamiento",
       panel de casamiento (nombres, código, QR), etiqueta "Blanquear contraseña", nombres
       dinámicos en vez de "Lucas & Cecilia" — delegada (writer)
@@ -74,4 +77,7 @@ Un PR por tarea; cada uno se apoya en el anterior.
   Pendiente para T2: get_user_context une por email sin wedding, set_user_role sin acotar,
   admin_stats y admin_recent_actions sin acotar. (resuelto en T2)
 - T2 hecho. Pendiente para T3: pasar `p_viewer` a getAuthor (lib/db/profiles.ts:93) y
-  getProfileOwner (:102); la fuga principal es app/api/photos/route.ts:28 (autor por query).
+  getProfileOwner (:102); la fuga principal es app/api/photos/route.ts:28 (autor por query). (resuelto en T3)
+- T3 hecho. Para T4: validar el código con GET /api/weddings/by-code antes de buscar;
+  quitar COUPLE/SIDE_LABELS fijos (lib/profile-schema.ts:43) y "Lucas & Cecilia" en
+  app/admin/page.tsx, app/admin/event/page.tsx, app/login/page.tsx, app/layout.tsx, manifest.

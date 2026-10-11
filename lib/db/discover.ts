@@ -51,7 +51,7 @@ export const recordSwipe = async (
   profileId: string,
   action: 'like' | 'skip'
 ): Promise<SwipeResult> => {
-  const target = await getProfileOwner(profileId)
+  const target = await getProfileOwner(profileId, fromUserId)
   if (!target) return { status: 'not_found' }
   if (target.userId === fromUserId) return { status: 'self' }
 

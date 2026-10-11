@@ -52,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!reply) return Response.json({ error: 'No se pudo responder: la historia ya no está disponible' }, { status: 404 })
 
     after(async () => {
-      const name = (await getAuthor(auth.userId))?.name ?? 'Alguien'
+      const name = (await getAuthor(auth.userId, auth.userId))?.name ?? 'Alguien'
       await emitTo(reply.ownerId, 'story:replied', { storyId: id, name, preview: content.slice(0, 80) })
       await sendPush(reply.ownerId, {
         title: name,
