@@ -39,7 +39,7 @@ const cut = (s: string, max: number) => {
 
 // Lo que se manda por la red y se muestra en la pantalla bloqueada: acotado y con la ruta siempre interna
 export const buildPayload = (p: PushPayload): PushPayload => ({
-  title: cut(p.title, TITLE_MAX) || 'Cecify',
+  title: cut(p.title, TITLE_MAX) || 'Lovify',
   body: cut(p.body, BODY_MAX),
   url: p.url.startsWith('/') && !p.url.startsWith('//') ? p.url : '/',
   ...(p.tag ? { tag: p.tag.slice(0, 64) } : {}),

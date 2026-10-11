@@ -36,7 +36,7 @@ function Poster({ url, small = false }: { url: string; small?: boolean }) {
         CL
       </span>
       <p className={`font-semibold text-brand-dark ${small ? 'text-base' : 'text-2xl'}`}>Lucas &amp; Cecilia</p>
-      <h2 className={`font-bold leading-tight text-neutral-800 ${small ? 'text-xl' : 'text-4xl'}`}>Escaneá y entrá a Cecify</h2>
+      <h2 className={`font-bold leading-tight text-neutral-800 ${small ? 'text-xl' : 'text-4xl'}`}>Escaneá y entrá a Lovify</h2>
       <p className={`text-neutral-600 ${small ? 'text-xs' : 'text-lg'}`}>Conocé gente de la fiesta y compartí las fotos de la noche</p>
       <Qr text={url} label="QR de la fiesta" className={`rounded-2xl bg-white ${small ? 'w-40 p-2.5' : 'w-[110mm] max-w-full p-4'}`} />
       <p className={`text-neutral-500 ${small ? 'text-[10px]' : 'text-sm'}`}>Abrí la cámara del celular y apuntá al código</p>

@@ -128,7 +128,7 @@ export default function PhotosPage() {
   return (
     <div className="flex h-full flex-col font-ig text-ig-text">
       <header className="flex items-center justify-between px-4 py-3">
-        <h1 className="text-2xl font-bold tracking-tight">Cecify</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Lovify</h1>
         <button type="button" onClick={() => setCreateMenu(true)} aria-label="Crear" className="tap relative">
           <SquarePlus size={28} strokeWidth={1.75} />
         </button>

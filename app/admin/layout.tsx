@@ -55,7 +55,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold leading-tight">Administración</h1>
             <p className="truncate text-xs text-neutral-500">
-              Cecify · {ROLE_LABELS[me.role]}
+              Lovify · {ROLE_LABELS[me.role]}
             </p>
           </div>
           <Link

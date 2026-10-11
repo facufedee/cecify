@@ -1,9 +1,9 @@
-// Service worker de Cecify.
+// Service worker de Lovify.
 //
 // Regla de oro: NUNCA se guarda en cache nada que dependa de la sesion (/api/*, fotos subidas,
 // paginas con datos del usuario). Solo la carcasa estatica de la app y una pantalla sin conexion.
 // Si un dispositivo se comparte entre invitados, no puede quedar informacion de otro en el cache.
-const CACHE = 'cecify-static-v3'
+const CACHE = 'cecify-static-v4'
 // En localhost (desarrollo) no se cachea nada: los archivos de Next no llevan hash y quedarian desactualizados.
 // El service worker se usa ahi solo para las notificaciones push.
 const DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1'
@@ -78,7 +78,7 @@ self.addEventListener('push', (event) => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       if (windows.some((w) => w.visibilityState === 'visible' && w.focused)) return
 
-      await self.registration.showNotification(String(data.title || 'Cecify'), {
+      await self.registration.showNotification(String(data.title || 'Lovify'), {
         body: String(data.body || ''),
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',

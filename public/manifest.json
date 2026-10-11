@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Cecify - Lucas & Cecilia",
-  "short_name": "Cecify",
-  "description": "Conocé a los invitados, chateá y compartí las fotos de la boda",
+  "name": "Lovify - Lucas & Cecilia",
+  "short_name": "Lovify",
+  "description": "En esta fiesta donde se celebra el amor, encontrá el tuyo. Conocé a los invitados, chateá y compartí las fotos de la boda",
   "lang": "es",
   "start_url": "/",
   "display": "standalone",

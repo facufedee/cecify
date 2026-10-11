@@ -57,8 +57,11 @@ export default function LoginPage() {
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/logo-mark.png" alt="" className="mx-auto h-20 w-auto" />
-          <h1 className="mt-3 text-2xl font-semibold text-[#4A7C59]">Cecify</h1>
+          <h1 className="mt-3 text-2xl font-semibold text-[#4A7C59]">Lovify</h1>
           <p className="mt-1 text-sm text-neutral-500">Lucas &amp; Cecilia</p>
+          <p className="mt-3 text-sm italic text-neutral-600">
+            En esta fiesta donde se celebra el amor, encontrá el tuyo 😃
+          </p>
         </div>
 
         {!ready ? (

@@ -60,7 +60,7 @@ export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWan
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium">¿Qué querés hacer en Cecify?</h2>
+        <h2 className="mb-3 text-sm font-medium">¿Qué querés hacer en Lovify?</h2>
         <div role="radiogroup" aria-label="Qué querés hacer" className="space-y-2.5">
           <button
             type="button"
