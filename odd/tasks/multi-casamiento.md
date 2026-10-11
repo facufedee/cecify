@@ -39,8 +39,11 @@ unicidades (`users.email`, `guests.email`, `guests.access_code`) son globales.
       casamiento, ventana de registro por casamiento, `create_wedding` — delegada (writer).
       Compatible hacia atrás: sin código usa el único casamiento existente.
       Checks: tests/db 217/217, npm test 348/348, tsc ok.
-- [ ] T2 SQL: acotar al casamiento todas las funciones de listado/búsqueda/admin y validar
-      mismo casamiento en acciones entre usuarios; tests de aislamiento — delegada (writer)
+      Revisión: riesgo medio, aprobada y confirmada (lineage review-5d421a15900c814d).
+- [x] T2 SQL: acotar al casamiento todas las funciones de listado/búsqueda/admin y validar
+      mismo casamiento en acciones entre usuarios; tests de aislamiento — delegada (writer).
+      40 funciones redefinidas, helper `same_wedding`. RED 17/17 → GREEN.
+      Checks: tests/db 234/234, npm test 365/365, tsc ok.
 - [ ] T3 API: entrada de invitados con código (buscar/registrar/login), crear casamiento,
       datos del casamiento actual, ajustes de nombres/código para dueños — delegada (writer)
 - [ ] T4 UI: paso de código en /login, link `/c/[code]`, página "Crear tu casamiento",
@@ -69,4 +72,6 @@ Un PR por tarea; cada uno se apoya en el anterior.
 - T1 hecho. Pendiente para T3: llamadas con código en lib/db/guest-login.ts, scripts/check-supabase.mjs
   (event_access ya no existe), código QR muerto en app/api/admin/event/route.ts.
   Pendiente para T2: get_user_context une por email sin wedding, set_user_role sin acotar,
-  admin_stats y admin_recent_actions sin acotar.
+  admin_stats y admin_recent_actions sin acotar. (resuelto en T2)
+- T2 hecho. Pendiente para T3: pasar `p_viewer` a getAuthor (lib/db/profiles.ts:93) y
+  getProfileOwner (:102); la fuga principal es app/api/photos/route.ts:28 (autor por query).
