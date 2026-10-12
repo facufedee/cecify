@@ -61,5 +61,6 @@ export const adminUpdateWedding = async (adminId: string, partnerA: string, part
     p_partner_b: partnerB,
   })
   const s = r?.out_status
-  return s === 'ok' || s === 'invalid' ? s : 'forbidden'
+  if (s === 'ok' || s === 'invalid' || s === 'forbidden') return s
+  throw new Error(`admin_update_wedding: estado inesperado ${s}`)
 }

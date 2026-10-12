@@ -87,13 +87,14 @@ describe('login de invitados con codigo', () => {
     code = w.code
     await q(db, `select * from admin_set_event_access($1, NULL, now() - interval '1 hour', now() + interval '1 hour')`, [w.owner])
     await q(db, `select * from admin_upsert_guest($1, 'Gina Invitada', NULL, 'GINA0001')`, [w.owner])
+    gina = (await guestSearch('gina inv', code)).guests[0].id
   })
 
   it('busca, registra y entra dentro de ese casamiento', async () => {
     const found = await guestSearch('gina inv', code)
     expect(found.guests).toHaveLength(1)
     expect(found.registrationOpen).toBe(true)
-    gina = found.guests[0].id
+    expect(found.guests[0].id).toBe(gina)
     expect(await registrationOpen(code)).toBe(true)
 
     const reg = await guestRegister(gina, 'scrypt$pin', code)

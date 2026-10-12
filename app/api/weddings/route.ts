@@ -1,6 +1,6 @@
 import { generateToken } from '@/lib/auth'
 import { verifyCaptcha } from '@/lib/captcha'
-import { adminAccountForLogin, createWedding } from '@/lib/db'
+import { createWedding } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { parseNewWedding, PARTNER_NAMES_ERROR, USERNAME_ERROR } from '@/lib/wedding-code'
@@ -10,6 +10,10 @@ const ATTEMPT_MAX = 20
 const ATTEMPT_WINDOW_MS = 15 * 60_000
 const CREATE_MAX = 5
 const CREATE_WINDOW_MS = 60 * 60_000
+
+// Apagado por defecto: mientras la app de invitados no mande el codigo del casamiento, un segundo casamiento
+// dejaria sin entrada a los invitados del primero (sin codigo se usa "el unico casamiento").
+const signupEnabled = () => process.env.WEDDING_SIGNUP_ENABLED === '1'
 
 const tooMany = (retryAfter: number) =>
   Response.json(
@@ -22,6 +26,8 @@ const fail = (error: string, status: number, code?: string) => Response.json({ e
 // Crear un casamiento: { partnerA, partnerB, username, password, captcha }. Crea el codigo y la cuenta del dueño
 // (superadmin de ese casamiento, entra en /login/admin) y devuelve { token, code, user } con la sesion ya iniciada.
 export async function POST(req: Request) {
+  if (!signupEnabled()) return fail('Todavía no se pueden crear casamientos', 403, 'SIGNUP_DISABLED')
+
   const ipAddr = getClientIp(req)
   const attempts = rateLimit(`wedding-create:ip:${ipAddr}`, ATTEMPT_MAX, ATTEMPT_WINDOW_MS)
   if (!attempts.ok) return tooMany(attempts.retryAfter)
@@ -43,11 +49,10 @@ export async function POST(req: Request) {
     const result = await createWedding(partnerA, partnerB, username, await hashPassword(password))
     switch (result.status) {
       case 'ok': {
-        // Igual que /api/auth/admin-login: rol y version de sesion leidos de la base
-        const account = await adminAccountForLogin(username)
-        if (!account) throw new Error('create_wedding: la cuenta del dueño no aparece')
-        const token = generateToken(account.userId, account.role, { version: account.sessionVersion })
-        return Response.json({ token, code: result.code, user: { id: account.userId, role: account.role } })
+        // La cuenta recien creada: superadmin con la version de sesion inicial (0). Sin releerla, asi un error
+        // despues del alta no esconde el codigo de un casamiento que ya existe.
+        const token = generateToken(result.userId, 'superadmin', { version: 0 })
+        return Response.json({ token, code: result.code, user: { id: result.userId, role: 'superadmin' } })
       }
       case 'username_taken':
         return fail('Ese usuario ya existe: elegí otro', 409, 'USERNAME_TAKEN')
