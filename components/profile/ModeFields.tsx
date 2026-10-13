@@ -6,11 +6,11 @@ import {
   LOOKING_FOR,
   LOOKING_FOR_LABELS,
   SIDES,
-  SIDE_LABELS,
   type LookingFor,
   type MatchPrefs,
   type Side,
 } from '@/lib/profile-schema'
+import { useSideLabels } from '@/lib/wedding-client'
 
 const card = (on: boolean) =>
   `flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition ${
@@ -36,6 +36,7 @@ type Props = {
 // De parte de quien venis, si queres hacer match o solo usar el muro, que buscas y a quien (genero y edad).
 // Lo usan el onboarding y la edicion del perfil.
 export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWantsMatch, onLookingFor, prefs, onPrefs }: Props) {
+  const labels = useSideLabels()
   const toggleLooking = (v: LookingFor) =>
     onLookingFor(lookingFor.includes(v) ? lookingFor.filter((x) => x !== v) : [...lookingFor, v])
 
@@ -53,7 +54,7 @@ export default function ModeFields({ side, wantsMatch, lookingFor, onSide, onWan
               onClick={() => onSide(s)}
               className={chip(side === s)}
             >
-              {SIDE_LABELS[s]}
+              {labels[s]}
             </button>
           ))}
         </div>

@@ -39,6 +39,17 @@ const demoPhoto = (colors: string[]) =>
 // Los datos de prueba van al casamiento migrado (el primero), aunque despues se creen otros en local
 const DEMO_WEDDING = '(select id from weddings order by created_at, id limit 1)'
 
+// Codigo fijo del casamiento de prueba, para entrar en local por /login o /c/CASA23 (el de la migracion es al azar).
+// Solo se pone si ningun otro casamiento lo tiene; correrlo de nuevo no cambia nada.
+const DEV_WEDDING_CODE = 'CASA23'
+
+const seedWeddingCode = (db: PGlite) =>
+  db.query(
+    `update weddings set code = $1
+     where id = ${DEMO_WEDDING} and code <> $1 and not exists (select 1 from weddings where code = $1)`,
+    [DEV_WEDDING_CODE]
+  )
+
 const seedDemos = async (db: PGlite) => {
   const dir = path.join(process.cwd(), 'public', 'uploads', 'demo')
   mkdirSync(dir, { recursive: true })
@@ -296,6 +307,7 @@ const prepare = async (db: PGlite) => {
      values (${DEMO_WEDDING}, 'Invitado de prueba', 'dev@cecify.local', 'DEV12345')
      on conflict do nothing`
   )
+  await seedWeddingCode(db)
   await seedDemos(db)
   await seedRoles(db)
   await seedPrefs(db)

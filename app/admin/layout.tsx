@@ -7,10 +7,13 @@ import { ArrowLeft, ShieldAlert, UserRound } from 'lucide-react'
 import MeProvider, { useMe } from '@/components/app/MeProvider'
 import { Spinner } from '@/components/admin/ui'
 import { getToken } from '@/lib/client-auth'
+import { coupleInitials, coupleTitle } from '@/lib/profile-schema'
 import { ROLE_LABELS, isAdminRole } from '@/lib/roles'
+import { useWedding } from '@/lib/wedding-client'
 
 const TABS = [
   { href: '/admin', label: 'Resumen' },
+  { href: '/admin/wedding', label: 'Casamiento' },
   { href: '/admin/reports', label: 'Reportes' },
   { href: '/admin/guests', label: 'Invitados' },
   { href: '/admin/event', label: 'Registro' },
@@ -21,6 +24,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { me } = useMe()
+  const wedding = useWedding()
 
   useEffect(() => {
     if (!getToken()) router.replace('/login')
@@ -51,11 +55,14 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh bg-neutral-50 text-neutral-800">
       <header className="border-b border-neutral-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">CL</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white" aria-hidden>
+            {coupleInitials(wedding)}
+          </span>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold leading-tight">Administración</h1>
             <p className="truncate text-xs text-neutral-500">
-              Lovify · {ROLE_LABELS[me.role]}
+              Lovify · {coupleTitle(wedding) ? `${coupleTitle(wedding)} · ` : ''}
+              {ROLE_LABELS[me.role]}
             </p>
           </div>
           <Link

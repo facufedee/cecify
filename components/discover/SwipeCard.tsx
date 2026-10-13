@@ -3,7 +3,8 @@
 import { useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import { Info } from 'lucide-react'
-import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { LOOKING_FOR_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { useSideLabels } from '@/lib/wedding-client'
 
 export type SwipeAction = 'like' | 'skip'
 export type SwipeCardHandle = { swipe: (action: SwipeAction) => void }
@@ -26,6 +27,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
   const skipOpacity = useTransform(x, [-120, -30], [1, 0])
   const leaving = useRef(false)
   const reduceMotion = useReducedMotion()
+  const sideLabels = useSideLabels()
 
   const fling = (action: SwipeAction) => {
     if (leaving.current) return
@@ -102,7 +104,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
         {(profile.side || profile.lookingFor.length > 0) && (
           <p className="mt-0.5 text-xs font-medium text-white/80">
             {[
-              profile.side && SIDE_LABELS[profile.side],
+              profile.side && sideLabels[profile.side],
               profile.lookingFor.length > 0 &&
                 `Busca: ${profile.lookingFor.map((v) => LOOKING_FOR_LABELS[v].toLowerCase()).join(' y ')}`,
             ]

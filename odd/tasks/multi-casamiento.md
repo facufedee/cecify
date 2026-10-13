@@ -49,9 +49,12 @@ unicidades (`users.email`, `guests.email`, `guests.access_code`) son globales.
       Endpoints: POST /api/weddings, GET /api/weddings/by-code, GET /api/wedding,
       PATCH /api/admin/wedding; `code?` opcional en guest search/register/login.
       Checks: npm test 380/380, tsc ok, lint 0 errores, build ok.
-- [ ] T4 UI: paso de código en /login, link `/c/[code]`, página "Crear tu casamiento",
+- [x] T4 UI: paso de código en /login, link `/c/[code]`, página "Crear tu casamiento",
       panel de casamiento (nombres, código, QR), etiqueta "Blanquear contraseña", nombres
-      dinámicos en vez de "Lucas & Cecilia" — delegada (writer)
+      dinámicos en vez de "Lucas & Cecilia" — delegada (writer).
+      Checks: npm test 390/390, tsc ok, lint 0 errores, build ok. Navegador (base local):
+      /c/CASA23 → login con nombres; /crear crea casamiento y da código; panel nuevo con 0
+      invitados (aislado); /admin/wedding ok; sin errores de consola ni servidor.
 - [ ] T5 Docs (README, docs/COMO-ESTA-PROGRAMADA.md) y seed local — inline
 
 Rutas: T1–T4 tocan 2+ archivos no triviales cada una → writer delegado.
@@ -78,6 +81,8 @@ Un PR por tarea; cada uno se apoya en el anterior.
   admin_stats y admin_recent_actions sin acotar. (resuelto en T2)
 - T2 hecho. Pendiente para T3: pasar `p_viewer` a getAuthor (lib/db/profiles.ts:93) y
   getProfileOwner (:102); la fuga principal es app/api/photos/route.ts:28 (autor por query). (resuelto en T3)
+- T3: revisión de riesgo alto (4 revisores) pidió 1 corrección: crear casamientos queda
+  apagado salvo WEDDING_SIGNUP_ENABLED=1 (b23f8a0). Validada y aprobada.
 - T3 hecho. Para T4: validar el código con GET /api/weddings/by-code antes de buscar;
   quitar COUPLE/SIDE_LABELS fijos (lib/profile-schema.ts:43) y "Lucas & Cecilia" en
   app/admin/page.tsx, app/admin/event/page.tsx, app/login/page.tsx, app/layout.tsx, manifest.

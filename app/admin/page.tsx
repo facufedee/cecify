@@ -7,7 +7,7 @@ import { adminJson, errorMessage } from '@/lib/admin-client'
 import { describeAction } from '@/lib/admin-labels'
 import type { AdminAction, AdminStats } from '@/lib/db/admin'
 import { formatShortAgo } from '@/lib/format'
-import { COUPLE } from '@/lib/profile-schema'
+import { useSideLabels } from '@/lib/wedding-client'
 
 type Overview = { stats: AdminStats; actions: AdminAction[] }
 
@@ -27,6 +27,7 @@ function Stat({ label, value, hint, href, alert = false }: { label: string; valu
 export default function AdminOverviewPage() {
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const labels = useSideLabels()
 
   useEffect(() => {
     let cancelled = false
@@ -49,9 +50,9 @@ export default function AdminOverviewPage() {
 
   const { stats: s, actions } = data
   const sides = [
-    { key: 'bride', label: `Del lado de ${COUPLE.bride}`, value: s.sides.bride, color: 'bg-brand' },
-    { key: 'groom', label: `Del lado de ${COUPLE.groom}`, value: s.sides.groom, color: 'bg-sky-600' },
-    { key: 'both', label: 'De los dos', value: s.sides.both, color: 'bg-amber-500' },
+    { key: 'bride', label: labels.bride, value: s.sides.bride, color: 'bg-brand' },
+    { key: 'groom', label: labels.groom, value: s.sides.groom, color: 'bg-sky-600' },
+    { key: 'both', label: labels.both, value: s.sides.both, color: 'bg-amber-500' },
     { key: 'unset', label: 'Sin dato', value: s.sides.unset, color: 'bg-neutral-300' },
   ]
   const sidesTotal = sides.reduce((sum, x) => sum + x.value, 0)

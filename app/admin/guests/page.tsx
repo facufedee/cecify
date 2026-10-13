@@ -8,21 +8,20 @@ import { Badge, btn, Card, ConfirmDialog, EmptyState, ErrorNote, inputClass, Mod
 import { adminJson, downloadCsv, errorMessage } from '@/lib/admin-client'
 import type { AdminGuest } from '@/lib/db/admin'
 import { contactLabel, hasRealEmail } from '@/lib/event'
-import { SIDES, SIDE_LABELS, type Side } from '@/lib/profile-schema'
+import { SIDES, type Side } from '@/lib/profile-schema'
 import { ROLE_LABELS, ROLES, type Role } from '@/lib/roles'
+import { useSideLabels } from '@/lib/wedding-client'
 
 type Page = { guests: AdminGuest[]; total: number; pageSize: number }
 
-const sideText = (s: Side | null) => (s ? SIDE_LABELS[s] : 'Sin dato')
-
-
 function SideSelect({ value, onChange }: { value: Side | ''; onChange: (v: Side | '') => void }) {
+  const labels = useSideLabels()
   return (
     <select className={inputClass} value={value} onChange={(e) => onChange(e.target.value as Side | '')} aria-label="De parte de quién viene">
       <option value="">Sin dato</option>
       {SIDES.map((s) => (
         <option key={s} value={s}>
-          {SIDE_LABELS[s]}
+          {labels[s]}
         </option>
       ))}
     </select>
@@ -295,18 +294,18 @@ function EditGuestModal({
           {!guest.claimed ? (
             <p className="text-xs text-neutral-500">
               {guest.userId
-                ? 'Le reiniciaron el PIN: la próxima vez que entre inventa uno nuevo.'
+                ? 'Le blanquearon la contraseña: la próxima vez que entre crea un PIN nuevo.'
                 : 'Todavía no se registró: entra buscando su nombre cuando el registro esté abierto.'}
             </p>
           ) : guest.code === null ? (
             <p className="text-xs text-neutral-500">
-              Es {ROLE_LABELS[role].toLowerCase()}: solo un superadministrador puede reiniciar su PIN o cerrar sus sesiones.
+              Es {ROLE_LABELS[role].toLowerCase()}: solo un superadministrador puede blanquear su contraseña o cerrar sus sesiones.
             </p>
           ) : (
             <>
               <p className="text-xs text-neutral-500">Ya se registró: entra con su nombre y su PIN.</p>
               <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('release')}>
-                Reiniciar su PIN
+                Blanquear contraseña
               </button>
               {guest.userId && (
                 <button type="button" className={`${btn.ghost} mt-1 -ml-2.5`} onClick={() => setConfirm('sessions')}>
@@ -363,14 +362,14 @@ function EditGuestModal({
 
       {confirm === 'release' && (
         <ConfirmDialog
-          title={`Reiniciar el PIN de ${guest.name}`}
-          message="Sirve si se olvidó el PIN (o si otra persona se registró con su nombre): se borra el PIN y se cierran sus sesiones. La próxima vez que entre busca su nombre e inventa uno nuevo, aunque el registro esté cerrado. Sigue siendo la misma cuenta (perfil, matches y chats). Hacelo solo si confirmaste que es esa persona."
-          confirmLabel="Reiniciar PIN"
+          title={`Blanquear la contraseña de ${guest.name}`}
+          message="Sirve si se olvidó su PIN (o si otra persona se registró con su nombre): se borra el PIN y se cierran sus sesiones. La próxima vez que entre busca su nombre y crea un PIN nuevo, aunque el registro esté cerrado. Sigue siendo la misma cuenta (perfil, matches y chats). Hacelo solo si confirmaste que es esa persona."
+          confirmLabel="Blanquear contraseña"
           onClose={() => setConfirm(null)}
           onConfirm={async () => {
             await adminJson(`/api/admin/guests/${guest.id}/release`, { method: 'POST' })
             onChanged()
-            notify('PIN reiniciado: ya puede inventar uno nuevo')
+            notify('Contraseña blanqueada: la próxima vez crea un PIN nuevo')
           }}
         />
       )}
@@ -422,6 +421,7 @@ function GuestsInner() {
   const [modal, setModal] = useState<'add' | 'import' | null>(null)
   const [editing, setEditing] = useState<AdminGuest | null>(null)
   const { show, toast } = useToast()
+  const sideLabels = useSideLabels()
 
   // Espera un momento despues de escribir antes de buscar
   useEffect(() => {
@@ -544,7 +544,7 @@ function GuestsInner() {
                 ) : (
                   <Badge tone="amber">Sin perfil</Badge>
                 )}
-                <span className="text-xs text-neutral-500">{sideText(g.side)}</span>
+                <span className="text-xs text-neutral-500">{g.side ? sideLabels[g.side] : 'Sin dato'}</span>
               </div>
               <button type="button" className={btn.secondary} onClick={() => setEditing(g)} aria-label={`Editar a ${g.name}`}>
                 Editar
