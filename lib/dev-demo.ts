@@ -35,7 +35,7 @@ export const maybeDemoReply = async (sent: ChatMessage & { toUserId: string }, s
     fromName: senderName,
     preview: content,
   })
-  const demoName = (await getAuthor(sent.toUserId))?.name ?? 'Un invitado'
+  const demoName = (await getAuthor(sent.toUserId, sent.fromUserId))?.name ?? 'Un invitado'
   await sendPush(sent.fromUserId, {
     title: demoName,
     body: content,

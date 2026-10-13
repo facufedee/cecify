@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "lovify-local",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set LOCAL_DB=1&& set WEDDING_SIGNUP_ENABLED=1&& npx next dev -p 3001"],
+      "port": 3001
     }
   ]
 }

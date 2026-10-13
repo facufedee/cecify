@@ -6,6 +6,8 @@ import Qr from '@/components/admin/Qr'
 import { Badge, btn, Card, ErrorNote, inputClass, Spinner, useToast } from '@/components/admin/ui'
 import { adminJson, errorMessage } from '@/lib/admin-client'
 import type { EventAccess } from '@/lib/db/event'
+import { coupleInitials, coupleTitle, type CoupleNames } from '@/lib/profile-schema'
+import { shareLink, useWedding } from '@/lib/wedding-client'
 
 type Format = 'poster' | 'tables'
 
@@ -23,7 +25,7 @@ const at = (base: Date, days: number, hours: number) => {
 const pretty = (iso: string) =>
   new Date(iso).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-function Poster({ url, small = false }: { url: string; small?: boolean }) {
+function Poster({ url, names, small = false }: { url: string; names: CoupleNames | null; small?: boolean }) {
   return (
     <article
       className={`flex break-inside-avoid flex-col items-center justify-center rounded-3xl border-2 border-brand/30 bg-cream text-center ${
@@ -33,10 +35,10 @@ function Poster({ url, small = false }: { url: string; small?: boolean }) {
       <span
         className={`flex items-center justify-center rounded-full bg-brand font-bold text-white ${small ? 'h-10 w-10 text-sm' : 'h-16 w-16 text-xl'}`}
       >
-        CL
+        {coupleInitials(names)}
       </span>
-      <p className={`font-semibold text-brand-dark ${small ? 'text-base' : 'text-2xl'}`}>Lucas &amp; Cecilia</p>
-      <h2 className={`font-bold leading-tight text-neutral-800 ${small ? 'text-xl' : 'text-4xl'}`}>Escaneá y entrá a Cecify</h2>
+      {names && <p className={`font-semibold text-brand-dark ${small ? 'text-base' : 'text-2xl'}`}>{coupleTitle(names)}</p>}
+      <h2 className={`font-bold leading-tight text-neutral-800 ${small ? 'text-xl' : 'text-4xl'}`}>Escaneá y entrá a Lovify</h2>
       <p className={`text-neutral-600 ${small ? 'text-xs' : 'text-lg'}`}>Conocé gente de la fiesta y compartí las fotos de la noche</p>
       <Qr text={url} label="QR de la fiesta" className={`rounded-2xl bg-white ${small ? 'w-40 p-2.5' : 'w-[110mm] max-w-full p-4'}`} />
       <p className={`text-neutral-500 ${small ? 'text-[10px]' : 'text-sm'}`}>Abrí la cámara del celular y apuntá al código</p>
@@ -46,6 +48,7 @@ function Poster({ url, small = false }: { url: string; small?: boolean }) {
 
 export default function AdminEventPage() {
   const { show, toast } = useToast()
+  const wedding = useWedding()
   const [event, setEvent] = useState<EventAccess | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   const [opens, setOpens] = useState('')
@@ -107,8 +110,8 @@ export default function AdminEventPage() {
   const base = origin.trim()
   const validBase = /^https?:\/\/[^\s/]+/i.test(base)
   const isLocal = /localhost|127\.0\.0\.1|192\.168\.|10\./.test(base)
-  // El QR solo abre la app: la entrada es buscar el nombre (y el PIN)
-  const url = validBase ? `${base.replace(/\/+$/, '')}/login` : null
+  // El QR es el link del casamiento (/c/CODIGO): guarda el codigo y lleva a buscar el nombre (y el PIN)
+  const url = validBase && wedding?.code ? shareLink(base, wedding.code) : null
   const validWindow = opens && closes && new Date(closes) > new Date(opens)
 
   return (
@@ -189,7 +192,7 @@ export default function AdminEventPage() {
 
         <Card className="space-y-4 p-4">
             <h2 className="text-base font-semibold">Carteles con QR</h2>
-            <p className="text-sm text-neutral-600">Para la entrada y las mesas: el QR abre la app, donde cada uno busca su nombre.</p>
+            <p className="text-sm text-neutral-600">Para la entrada y las mesas: el QR abre la entrada de su casamiento, donde cada uno busca su nombre.</p>
             <label className="block text-sm">
               <span className="mb-1 block font-medium">Dirección de la app</span>
               <input
@@ -245,9 +248,9 @@ export default function AdminEventPage() {
       {url && (
         <section aria-label="Vista previa para imprimir" className={format === 'tables' ? 'grid grid-cols-2 gap-3 print:gap-2' : ''}>
           {format === 'poster' ? (
-            <Poster url={url} />
+            <Poster url={url} names={wedding} />
           ) : (
-            Array.from({ length: copies }, (_, i) => <Poster key={i} url={url} small />)
+            Array.from({ length: copies }, (_, i) => <Poster key={i} url={url} names={wedding} small />)
           )}
         </section>
       )}

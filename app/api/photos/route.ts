@@ -25,7 +25,7 @@ export async function GET(req: Request) {
       return Response.json({ error: 'Invitado no encontrado' }, { status: 404 })
     }
     const photos = await listPhotos(auth.userId, { before, author: authorRaw ?? undefined, limit })
-    const author = authorRaw ? await getAuthor(authorRaw) : undefined
+    const author = authorRaw ? await getAuthor(authorRaw, auth.userId) : undefined
     if (authorRaw && !author) return Response.json({ error: 'Invitado no encontrado' }, { status: 404 })
     return Response.json({ photos, author })
   } catch (error) {

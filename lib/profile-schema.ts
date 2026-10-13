@@ -40,15 +40,33 @@ export const INTERESTS = [
   'Idiomas',
 ] as const
 
-export const COUPLE = { bride: 'Cecilia', groom: 'Lucas' } as const
+// Los nombres de la pareja vienen del casamiento: partnerA es el lado 'bride' y partnerB el 'groom'
+export type CoupleNames = { partnerA: string; partnerB: string }
 
 // De parte de quien viene el invitado
 export const SIDES = ['bride', 'groom', 'both'] as const
 export type Side = (typeof SIDES)[number]
-export const SIDE_LABELS: Record<Side, string> = {
-  bride: `Del lado de ${COUPLE.bride}`,
-  groom: `Del lado de ${COUPLE.groom}`,
-  both: 'De los dos',
+
+// Sin los nombres (cargando o sin conexion) se usan textos neutros
+export const sideLabels = (names: CoupleNames | null): Record<Side, string> => {
+  const a = names?.partnerA.trim()
+  const b = names?.partnerB.trim()
+  return {
+    bride: a ? `Del lado de ${a}` : 'Del lado de la novia',
+    groom: b ? `Del lado de ${b}` : 'Del lado del novio',
+    both: 'De los dos',
+  }
+}
+
+// "Ana & Bruno", o null sin los nombres
+export const coupleTitle = (names: CoupleNames | null) =>
+  names ? `${names.partnerA.trim()} & ${names.partnerB.trim()}` : null
+
+// Iniciales para el circulo del logo ("AB"); un corazon mientras no hay nombres
+export const coupleInitials = (names: CoupleNames | null) => {
+  const first = (s: string | undefined) => [...(s?.trim() ?? '')][0]?.toUpperCase() ?? ''
+  const initials = `${first(names?.partnerA)}${first(names?.partnerB)}`
+  return initials || '♥'
 }
 export const isSide = (v: unknown): v is Side => typeof v === 'string' && (SIDES as readonly string[]).includes(v)
 

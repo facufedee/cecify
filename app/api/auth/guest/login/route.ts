@@ -4,25 +4,28 @@ import { dummyHash, verifyPassword } from '@/lib/password'
 import { PIN_RE } from '@/lib/pin'
 import { getClientIp, rateLimit } from '@/lib/rate-limit'
 import { isUuid } from '@/lib/validators'
+import { parseWeddingCode } from '@/lib/wedding-code'
 
 const fail = (error: string, status: number, extra: Record<string, unknown> = {}) => Response.json({ error, ...extra }, { status })
 
 const untilText = (d: Date) => d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })
 
-// Entrar con el PIN: { guestId, pin }. Funciona siempre (aunque el registro este cerrado).
+// Entrar con el PIN: { guestId, pin, code? } (code: el del casamiento; sin code, el unico casamiento). Funciona siempre (aunque el registro este cerrado).
 // Cada nombre tiene 5 intentos: al quinto fallido queda trabado 15 minutos (lo cuenta la base, no la memoria).
 export async function POST(req: Request) {
   // Ademas, por IP: frena a quien prueba "1234" en muchos nombres (holgado por el WiFi compartido de la fiesta)
   if (!rateLimit(`guest-login:ip:${getClientIp(req)}`, 60, 10 * 60_000).ok) return fail('Demasiados intentos, esperá unos minutos', 429)
 
-  const body = (await req.json().catch(() => null)) as { guestId?: unknown; pin?: unknown } | null
+  const body = (await req.json().catch(() => null)) as { guestId?: unknown; pin?: unknown; code?: unknown } | null
+  const code = parseWeddingCode(body?.code)
+  if (code === null) return fail('El código del casamiento no es válido', 400, { code: 'WEDDING_CODE' })
   if (!isUuid(body?.guestId)) return fail('Elegí tu nombre de la lista', 400)
   const pin = typeof body?.pin === 'string' ? body.pin : ''
   if (!PIN_RE.test(pin)) return fail('El PIN tiene que ser de 4 números', 400)
   const guestId = body.guestId as string
 
   try {
-    const stored = await guestPinForLogin(guestId)
+    const stored = await guestPinForLogin(guestId, code)
     if (!stored) {
       await verifyPassword(pin, await dummyHash()) // mismo tiempo de respuesta
       return fail('Este nombre todavía no se registró', 404, { code: 'NOT_REGISTERED' })
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
       return fail(`Demasiados intentos con este nombre. Probá de nuevo a las ${untilText(stored.lockedUntil)}.`, 423, { code: 'LOCKED' })
     }
 
-    const result = await guestPinAttempt(guestId, await verifyPassword(pin, stored.hash))
+    const result = await guestPinAttempt(guestId, await verifyPassword(pin, stored.hash), code)
     switch (result.status) {
       case 'ok':
         return Response.json({ token: generateToken(result.userId, result.role, { version: result.sessionVersion }) })

@@ -6,7 +6,7 @@ import { isIOS, isStandalone } from '@/lib/pwa'
 
 type Prompt = Event & { prompt: () => Promise<void> }
 
-// "Usar Cecify como app": como instalarla. Si la app instalada pide entrar (en iPhone no comparte la sesion de
+// "Usar Lovify como app": como instalarla. Si la app instalada pide entrar (en iPhone no comparte la sesion de
 // Safari), se entra con el nombre y el PIN. No se muestra dentro de la app ya instalada.
 export default function InstallApp() {
   const [show, setShow] = useState(false)
@@ -35,7 +35,7 @@ export default function InstallApp() {
   return (
     <section className="mt-4 rounded-xl border border-ig-border p-4 text-sm">
       <h2 className="flex items-center gap-2 font-semibold">
-        <Smartphone size={18} /> Usar Cecify como app
+        <Smartphone size={18} /> Usar Lovify como app
       </h2>
       {prompt ? (
         <button

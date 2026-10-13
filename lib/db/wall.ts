@@ -123,7 +123,7 @@ export const addComment = async (
     p_content: content,
   })
   if (!r) return null
-  const author = await getAuthor(userId)
+  const author = await getAuthor(userId, userId)
   return {
     id: r.comment_id,
     authorId: userId,

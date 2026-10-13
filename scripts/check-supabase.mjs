@@ -42,7 +42,7 @@ else if (env.JWT_SECRET.length < 32) bad('JWT_SECRET tiene menos de 32 caractere
 else ok('JWT_SECRET')
 if (Boolean(env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
   bad('Turnstile: tienen que estar las dos claves (NEXT_PUBLIC_TURNSTILE_SITE_KEY y TURNSTILE_SECRET_KEY) o ninguna')
-} else if (!env.TURNSTILE_SECRET_KEY) warn('Sin captcha (TURNSTILE_*): la entrada con el QR y el login de organizadores no lo piden')
+} else if (!env.TURNSTILE_SECRET_KEY) warn('Sin captcha (TURNSTILE_*): crear un casamiento y el login de organizadores no lo piden')
 else if (env.TURNSTILE_SECRET_KEY.startsWith('1x0000')) warn('Turnstile con las claves de PRUEBA de Cloudflare (siempre aprueban)', 'En produccion cargá las reales')
 else ok('Captcha (Turnstile)')
 const vapid = [env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT].filter(Boolean).length
@@ -66,12 +66,14 @@ const fnChecks = [
   ['get_session_info', { p_user: NIL }, 'sesiones'],
   ['discover_profiles', { p_user: NIL }, 'descubrir'],
   ['admin_list_guests', { p_actor: NIL }, 'panel de administracion'],
-  ['admin_get_event_access', { p_actor: NIL }, 'QR de la fiesta'],
+  ['admin_get_event_access', { p_actor: NIL }, 'horario de registro'],
   ['admin_account_of', { p_user: NIL }, 'cuentas de organizador'],
   ['redeem_session_transfer', { p_hash: 'chequeo' }, 'pasar la sesion a la app instalada'],
   ['skipped_count', { p_user: NIL }, 'volver a ver los que pasaste'],
-  ['guest_search', { p_query: 'chequeo' }, 'login con nombre y PIN'],
-  ['registration_status', {}, 'registro abierto o cerrado'],
+  ['guest_search', { p_query: 'chequeo', p_wedding_code: 'ZZZZZZ' }, 'login con nombre y PIN por casamiento'],
+  ['registration_status', { p_wedding_code: 'ZZZZZZ' }, 'registro abierto o cerrado'],
+  ['wedding_by_code', { p_code: 'ZZZZZZ' }, 'casamientos'],
+  ['wedding_of_user', { p_user_id: NIL }, 'casamiento de cada persona'],
 ]
 let schemaOk = true
 for (const [fn, args, what] of fnChecks) {
@@ -86,7 +88,7 @@ for (const [fn, args, what] of fnChecks) {
 }
 for (const [table, cols, what] of [
   ['profiles', 'gender, interested_in, pref_age_min, pref_age_max', 'preferencias de match'],
-  ['event_access', 'id', 'QR de la fiesta'],
+  ['weddings', 'id, code, partner_a, partner_b, opens_at, closes_at', 'casamientos'],
   ['admin_accounts', 'user_id', 'cuentas de organizador'],
 ]) {
   const { error } = await admin.from(table).select(cols).limit(1)
@@ -112,7 +114,7 @@ if (publicKey) {
   // Cualquier otro error (URL mal, sin conexion) no prueba nada.
   const denied = (e) => e && (e.code === '42501' || /permission denied/i.test(e.message))
   const unproven = (what, e) => warn(`No se pudo probar ${what}: ${e.message}`)
-  for (const table of ['users', 'guests', 'profiles', 'messages', 'admin_accounts', 'event_access']) {
+  for (const table of ['users', 'guests', 'profiles', 'messages', 'admin_accounts', 'weddings']) {
     const { data, error } = await anon.from(table).select('*').limit(1)
     if (!error && data?.length > 0) bad(`La clave publica LEE la tabla ${table}`, 'Revisá RLS: todas las tablas tienen que tener RLS sin policies')
     else if (!error || denied(error)) ok(`no lee ${table}`)
@@ -123,6 +125,7 @@ if (publicKey) {
     ['admin_list_guests', { p_actor: NIL }],
     ['admin_account_for_login', { p_username: 'chequeo' }],
     ['guest_pin_for_login', { p_guest: NIL }],
+    ['wedding_by_code', { p_code: 'ZZZZZZ' }],
   ]) {
     const { error } = await anon.rpc(fn, args)
     if (!error) bad(`La clave publica PUEDE llamar a ${fn}`, 'Falta el REVOKE de esa funcion en su migracion')

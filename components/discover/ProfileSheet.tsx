@@ -3,7 +3,8 @@
 import { useDialog } from '@/components/a11y/useDialog'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { LOOKING_FOR_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { useSideLabels } from '@/lib/wedding-client'
 
 export default function ProfileSheet({
   profile,
@@ -15,6 +16,7 @@ export default function ProfileSheet({
   onSafety: () => void
 }) {
   const photos = [profile.mainPhotoUrl, ...profile.additionalPhotos]
+  const sideLabels = useSideLabels()
 
   const dialogRef = useDialog<HTMLDivElement>(onClose)
   return (
@@ -70,7 +72,7 @@ export default function ProfileSheet({
             {profile.name}, {profile.age}
           </h2>
 
-          {profile.side && <p className="mt-0.5 text-sm text-neutral-500">{SIDE_LABELS[profile.side]}</p>}
+          {profile.side && <p className="mt-0.5 text-sm text-neutral-500">{sideLabels[profile.side]}</p>}
 
           {profile.lookingFor.length > 0 && (
             <section className="mt-4">

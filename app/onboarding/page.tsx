@@ -198,7 +198,7 @@ export default function OnboardingPage() {
               <ArrowLeft size={18} />
             </button>
           )}
-          <span className="text-lg font-semibold text-brand">Cecify</span>
+          <span className="text-lg font-semibold text-brand">Lovify</span>
         </header>
 
         <div className="mt-6">

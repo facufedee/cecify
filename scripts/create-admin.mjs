@@ -1,5 +1,7 @@
-// Uso: npm run create:admin -- <usuario>
+// Uso: npm run create:admin -- <usuario> [codigo-del-casamiento]
 // Crea una cuenta de organizador (superadmin) con usuario y contraseña, o le cambia la contraseña si ya existe.
+// Con el codigo, la cuenta nueva va a ese casamiento; sin el, solo funciona mientras haya un unico casamiento.
+// (A una cuenta que ya existe solo se le cambia la contraseña: sigue en su casamiento.)
 // La contraseña se pide por la terminal sin mostrarla (o se toma de ADMIN_NEW_PASSWORD). Nunca se guarda en texto:
 // solo su hash. Entra en /login/admin.
 //
@@ -9,9 +11,21 @@ import { createInterface } from 'node:readline'
 import { hashPassword } from '../lib/password.ts'
 import { passwordProblem, USERNAME_RE } from '../lib/password-rules.ts'
 
+// Mismas reglas que lib/wedding-code.ts (sin imports con alias: este script corre con node directo)
+const WEDDING_CODE_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/
+
 const username = (process.argv[2] ?? '').trim().toLowerCase()
 if (!USERNAME_RE.test(username)) {
-  console.error('Uso: npm run create:admin -- <usuario>   (3 a 30 caracteres: letras, numeros, punto, guion)')
+  console.error('Uso: npm run create:admin -- <usuario> [codigo]   (usuario: 3 a 30 caracteres: letras, numeros, punto, guion)')
+  process.exit(1)
+}
+const weddingCode = process.argv[3] ? process.argv[3].replace(/[\s-]/g, '').toUpperCase() : null
+if (weddingCode !== null && !WEDDING_CODE_RE.test(weddingCode)) {
+  console.error('El codigo del casamiento tiene 6 caracteres (letras y numeros, sin 0, 1, I, L ni O)')
+  process.exit(1)
+}
+const noWedding = () => {
+  console.error(`No existe un casamiento con el codigo ${weddingCode}`)
   process.exit(1)
 }
 
@@ -48,7 +62,17 @@ if (process.env.LOCAL_DB === '1') {
   const { PGlite } = await import('@electric-sql/pglite')
   const db = new PGlite('.local-db')
   try {
-    const { rows } = await db.query('select * from create_admin_account($1, $2)', [username, hash])
+    let wedding = null
+    if (weddingCode) {
+      const { rows: found } = await db.query('select * from wedding_by_code(p_code => $1)', [weddingCode])
+      if (!found[0]) noWedding()
+      wedding = found[0].out_id
+    }
+    const { rows } = await db.query('select * from create_admin_account(p_username => $1, p_hash => $2, p_wedding => $3)', [
+      username,
+      hash,
+      wedding,
+    ])
     created = rows[0].out_created
   } catch (error) {
     console.error('No se pudo crear la cuenta en la base local:', error.message)
@@ -66,9 +90,21 @@ if (process.env.LOCAL_DB === '1') {
     process.exit(1)
   }
   const { createClient } = await import('@supabase/supabase-js')
-  const { data, error } = await createClient(url, key, { auth: { persistSession: false } }).rpc('create_admin_account', {
+  const supabase = createClient(url, key, { auth: { persistSession: false } })
+  let wedding = null
+  if (weddingCode) {
+    const { data: found, error: findError } = await supabase.rpc('wedding_by_code', { p_code: weddingCode })
+    if (findError) {
+      console.error('No se pudo buscar el casamiento:', findError.message)
+      process.exit(1)
+    }
+    if (!found?.[0]) noWedding()
+    wedding = found[0].out_id
+  }
+  const { data, error } = await supabase.rpc('create_admin_account', {
     p_username: username,
     p_hash: hash,
+    p_wedding: wedding,
   })
   if (error) {
     console.error('No se pudo crear la cuenta:', error.message)

@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/logo-mark.png" alt="" className="mx-auto h-16 w-auto" />
           <h1 className="mt-3 text-xl font-semibold text-[#4A7C59]">Organizadores</h1>
-          <p className="mt-1 text-sm text-neutral-500">Panel de Cecify</p>
+          <p className="mt-1 text-sm text-neutral-500">Panel de Lovify</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">

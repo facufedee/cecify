@@ -89,21 +89,25 @@ export const upsertProfile = async (userId: string, input: ProfileInput): Promis
   return toProfile(r.out_profile)
 }
 
-// Datos publicos del autor (cabecera del perfil con grilla, avisos)
-export const getAuthor = async (userId: string) => {
+// Datos publicos del autor (cabecera del perfil con grilla, avisos), visto por viewerId.
+// null = no existe o es de otro casamiento que viewerId.
+export const getAuthor = async (userId: string, viewerId: string) => {
   const [r] = await callFn<{ out_name: string; out_photo: string | null; out_bio: string | null }>('get_author', {
     p_user: userId,
+    p_viewer: viewerId,
   })
   return r ? { name: r.out_name, photo: r.out_photo ?? '', bio: r.out_bio ?? '' } : null
 }
 
 // A quien pertenece un perfil. Descubrir no expone ids de usuario: los reportes, bloqueos y swipes pueden venir
-// con el id de perfil. null = el perfil no existe.
-export const getProfileOwner = async (profileId: string) => {
+// con el id de perfil. null = el perfil no existe o es de otro casamiento que viewerId.
+export const getProfileOwner = async (profileId: string, viewerId: string) => {
   const [r] = await callFn<{ out_user: string; out_name: string; out_photo: string | null }>('get_profile_owner', {
     p_profile: profileId,
+    p_viewer: viewerId,
   })
   return r ? { userId: r.out_user, name: r.out_name, mainPhotoUrl: r.out_photo ?? '' } : null
 }
 
-export const userIdForProfile = async (profileId: string) => (await getProfileOwner(profileId))?.userId ?? null
+export const userIdForProfile = async (profileId: string, viewerId: string) =>
+  (await getProfileOwner(profileId, viewerId))?.userId ?? null

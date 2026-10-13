@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     if (result.liked && result.ownerId !== auth.userId) {
       after(async () => {
-        const me = await getAuthor(auth.userId)
+        const me = await getAuthor(auth.userId, auth.userId)
         await emitTo(result.ownerId, 'photo:liked', { photoId: id, name: me?.name ?? 'Alguien' })
       })
     }

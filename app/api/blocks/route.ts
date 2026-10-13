@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   let userId: unknown = input.userId
   if (!userId && isUuid(input.profileId)) {
     try {
-      userId = await userIdForProfile(input.profileId)
+      userId = await userIdForProfile(input.profileId, auth.userId)
     } catch {
       return Response.json({ error: 'Error del servidor' }, { status: 500 })
     }

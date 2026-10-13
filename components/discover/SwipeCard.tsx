@@ -1,9 +1,10 @@
 'use client'
 
-import { useImperativeHandle, useRef, type Ref } from 'react'
+import { useImperativeHandle, useRef, useState, type Ref } from 'react'
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import { Info } from 'lucide-react'
-import { LOOKING_FOR_LABELS, SIDE_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { LOOKING_FOR_LABELS, type DiscoverProfile } from '@/lib/profile-schema'
+import { useSideLabels } from '@/lib/wedding-client'
 
 export type SwipeAction = 'like' | 'skip'
 export type SwipeCardHandle = { swipe: (action: SwipeAction) => void }
@@ -26,6 +27,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
   const skipOpacity = useTransform(x, [-120, -30], [1, 0])
   const leaving = useRef(false)
   const reduceMotion = useReducedMotion()
+  const sideLabels = useSideLabels()
 
   const fling = (action: SwipeAction) => {
     if (leaving.current) return
@@ -39,6 +41,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
 
   useImperativeHandle(handleRef, () => ({ swipe: fling }))
 
+  const [loaded, setLoaded] = useState(false)
   const shown = profile.interests.slice(0, 3)
 
   return (
@@ -53,12 +56,21 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
       }}
       className="absolute inset-0 touch-pan-y select-none overflow-hidden rounded-[2rem] bg-cream shadow-lg"
     >
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-cream">
+          <span className="h-10 w-10 animate-pulse rounded-full bg-neutral-200" />
+        </div>
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={profile.mainPhotoUrl}
         alt={`Foto de ${profile.name}`}
         draggable={false}
-        className="pointer-events-none h-full w-full object-cover"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`pointer-events-none h-full w-full object-cover transition-opacity duration-300 ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
 
@@ -92,7 +104,7 @@ export default function SwipeCard({ profile, interactive, onSwipe, onInfo, handl
         {(profile.side || profile.lookingFor.length > 0) && (
           <p className="mt-0.5 text-xs font-medium text-white/80">
             {[
-              profile.side && SIDE_LABELS[profile.side],
+              profile.side && sideLabels[profile.side],
               profile.lookingFor.length > 0 &&
                 `Busca: ${profile.lookingFor.map((v) => LOOKING_FOR_LABELS[v].toLowerCase()).join(' y ')}`,
             ]

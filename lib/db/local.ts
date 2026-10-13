@@ -36,6 +36,20 @@ const demoPhoto = (colors: string[]) =>
     .jpeg({ quality: 82 })
     .toBuffer()
 
+// Los datos de prueba van al casamiento migrado (el primero), aunque despues se creen otros en local
+const DEMO_WEDDING = '(select id from weddings order by created_at, id limit 1)'
+
+// Codigo fijo del casamiento de prueba, para entrar en local por /login o /c/CASA23 (el de la migracion es al azar).
+// Solo se pone si ningun otro casamiento lo tiene; correrlo de nuevo no cambia nada.
+const DEV_WEDDING_CODE = 'CASA23'
+
+const seedWeddingCode = (db: PGlite) =>
+  db.query(
+    `update weddings set code = $1
+     where id = ${DEMO_WEDDING} and code <> $1 and not exists (select 1 from weddings where code = $1)`,
+    [DEV_WEDDING_CODE]
+  )
+
 const seedDemos = async (db: PGlite) => {
   const dir = path.join(process.cwd(), 'public', 'uploads', 'demo')
   mkdirSync(dir, { recursive: true })
@@ -49,12 +63,12 @@ const seedDemos = async (db: PGlite) => {
     }
 
     await db.query(
-      `insert into guests (name, email, access_code) values ($1, $2, $3) on conflict do nothing`,
+      `insert into guests (wedding_id, name, email, access_code) values (${DEMO_WEDDING}, $1, $2, $3) on conflict do nothing`,
       [d.name, email, `DEMO000${n}`]
     )
     const u = await db.query<{ id: string }>(
-      `insert into users (email) values ($1)
-       on conflict (email) do update set email = excluded.email returning id`,
+      `insert into users (wedding_id, email) values (${DEMO_WEDDING}, $1)
+       on conflict (wedding_id, email) do update set email = excluded.email returning id`,
       [email]
     )
     await db.query(
@@ -289,10 +303,11 @@ const prepare = async (db: PGlite) => {
   }
 
   await db.query(
-    `insert into guests (name, email, access_code)
-     values ('Invitado de prueba', 'dev@cecify.local', 'DEV12345')
+    `insert into guests (wedding_id, name, email, access_code)
+     values (${DEMO_WEDDING}, 'Invitado de prueba', 'dev@cecify.local', 'DEV12345')
      on conflict do nothing`
   )
+  await seedWeddingCode(db)
   await seedDemos(db)
   await seedRoles(db)
   await seedPrefs(db)

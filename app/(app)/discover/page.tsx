@@ -85,6 +85,17 @@ export default function DiscoverPage() {
     if (!exhausted && deck.length <= 2) void fetchMore()
   }, [deck.length, exhausted, fetchMore])
 
+  // Precarga las imagenes de las proximas tarjetas para que al deslizar se vean al instante
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    deck.slice(0, 4).forEach((p) => {
+      if (p.mainPhotoUrl) {
+        const img = new Image()
+        img.src = p.mainPhotoUrl
+      }
+    })
+  }, [deck])
+
   const onSwipe = async (profile: DiscoverProfile, action: SwipeAction) => {
     setDeck((d) => d.filter((p) => p.id !== profile.id))
     try {

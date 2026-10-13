@@ -112,6 +112,26 @@ export default function StoryViewer({
     if (stories && stories.length === 0) nextRef.current()
   }, [stories])
 
+  // Precarga de la siguiente historia para transicion instantanea
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (stories && si < stories.length - 1) {
+      const nextStory = stories[si + 1]
+      if (nextStory?.photoUrl) {
+        const img = new Image()
+        img.src = nextStory.photoUrl
+      }
+    }
+    if (ai < queue.length - 1) {
+      const nextAuthor = queue[ai + 1]
+      const nextList = byAuthor[nextAuthor.authorId]
+      if (nextList?.[0]?.photoUrl) {
+        const img = new Image()
+        img.src = nextList[0].photoUrl
+      }
+    }
+  }, [stories, si, ai, queue, byAuthor])
+
   // Reloj de la historia actual
   useEffect(() => {
     if (!story || paused || replying || sheet || safety.busy) return
