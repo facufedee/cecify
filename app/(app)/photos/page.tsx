@@ -128,7 +128,11 @@ export default function PhotosPage() {
   return (
     <div className="flex h-full flex-col font-ig text-ig-text">
       <header className="flex items-center justify-between px-4 py-3">
-        <h1 className="text-2xl font-bold tracking-tight">Lovify</h1>
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/logo-mark.png" alt="" className="h-7 w-7 object-contain" />
+          <h1 className="text-2xl font-bold tracking-tight">Lovify</h1>
+        </div>
         <button type="button" onClick={() => setCreateMenu(true)} aria-label="Crear" className="tap relative">
           <SquarePlus size={28} strokeWidth={1.75} />
         </button>

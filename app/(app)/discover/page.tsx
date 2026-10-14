@@ -146,6 +146,11 @@ export default function DiscoverPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="px-6 pb-3 pt-5">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/logo-mark.png" alt="" className="h-5 w-5 object-contain" />
+          <span className="text-xs font-bold tracking-wider text-brand uppercase">Lovify</span>
+        </div>
         <h1 className="text-2xl font-semibold">
           Descubrí a los <span className="text-brand">invitados</span>
         </h1>

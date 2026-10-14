@@ -41,8 +41,8 @@ describe('buildPayload', () => {
     expect(buildPayload({ title: 'A', body: '  hola   que   tal ', url: '/x' }).body).toBe('hola que tal')
   })
 
-  it('sin titulo usa "Lovify"', () => {
-    expect(buildPayload({ title: '   ', body: 'b', url: '/' }).title).toBe('Lovify')
+  it('sin titulo usa "Lovify APP"', () => {
+    expect(buildPayload({ title: '   ', body: 'b', url: '/' }).title).toBe('Lovify APP')
   })
 
   it('la ruta siempre es interna: una direccion externa se reemplaza por la portada', () => {

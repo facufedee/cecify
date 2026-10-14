@@ -1,115 +1,73 @@
-// Genera los iconos de la PWA, el favicon y la marca del login a partir de la hoja de logos.
-// Uso: node scripts/generate-icons.mjs ["ruta/a/la-hoja.png"]
+// Genera los iconos de la PWA, el favicon y la marca chica de la app a partir del logo fuente.
+// Uso: node scripts/generate-icons.mjs ["ruta/al-logo.png"]
 //
-// Toma el monograma "CL" verde sobre beige de la hoja (celda "monocromo verde"), lo convierte en
-// una mascara (mas oscuro = mas opaco) y lo compone en crema sobre el verde de marca.
+// La fuente es assets/logo-source.png (corazon verde con la "L", fondo transparente, 512x512).
+// Nunca se lee desde public/icons: esos archivos son la salida y se pisan en cada corrida.
+// Los iconos de app van sobre crema (#F5EFE0); los maskable dejan 20% de margen por la zona segura.
 import sharp from 'sharp'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, statSync, writeFileSync } from 'node:fs'
 
-const SRC = process.argv[2] ?? 'ChatGPT Image 20 sept 2026, 11_49_36.png'
+const SRC = process.argv[2] ?? 'assets/logo-source.png'
 const OUT = 'public/icons'
-const BRAND = { r: 0x4a, g: 0x7c, b: 0x59 } // mismo verde que theme_color
-const CREAM = { r: 0xf1, g: 0xee, b: 0xe5 }
+const CREAM = { r: 0xf5, g: 0xef, b: 0xe0, alpha: 1 }
+// Paleta indexada: los PNG pesan una fraccion y el logo (pocos colores) no pierde calidad visible
+const PNG = { compressionLevel: 9, palette: true }
 
-// Region del monograma dentro de la hoja (sin el texto de la celda)
-const GLYPH = { left: 316 + 40, top: 452 + 56, width: 240, height: 250 }
-const BG_LUMA = 236 // beige de fondo
-const INK_LUMA = 100 // verde del trazo
+// Logo centrado sobre un cuadrado crema, con padding = proporcion del lado en cada borde
+const onCream = async (size, padding) => {
+  const pad = Math.round(size * padding)
+  const inner = await sharp(SRC)
+    .resize(size - pad * 2, size - pad * 2, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .toBuffer()
+  return sharp({ create: { width: size, height: size, channels: 4, background: CREAM } })
+    .composite([{ input: inner, top: pad, left: pad }])
+    .png(PNG)
+    .toBuffer()
+}
 
-mkdirSync(OUT, { recursive: true })
+async function main() {
+  mkdirSync(OUT, { recursive: true })
 
-const { data, info } = await sharp(SRC)
-  .extract(GLYPH)
-  .flatten({ background: '#f1eee5' })
-  .raw()
-  .toBuffer({ resolveWithObject: true })
+  const files = {
+    'icon-192.png': await onCream(192, 0.12),
+    'icon-512.png': await onCream(512, 0.12),
+    'icon-maskable-192.png': await onCream(192, 0.2),
+    'icon-maskable-512.png': await onCream(512, 0.2),
+    'apple-touch-icon.png': await onCream(180, 0.12),
+    // Con fondo crema se leen en la pestaña aunque el navegador use tema oscuro
+    'favicon-32.png': await onCream(32, 0.06),
+    'favicon-16.png': await onCream(16, 0.04),
+    // Marca chica con fondo transparente para los encabezados (se muestra a 20-36px)
+    'logo-mark.png': await sharp(SRC).resize({ width: 160 }).png(PNG).toBuffer(),
+  }
+  for (const [name, buf] of Object.entries(files)) writeFileSync(`${OUT}/${name}`, buf)
 
-// Mascara: alfa segun cuan oscuro es cada pixel
-const alpha = Buffer.alloc(info.width * info.height)
-let minX = info.width
-let maxX = 0
-let minY = info.height
-let maxY = 0
-for (let y = 0; y < info.height; y++) {
-  for (let x = 0; x < info.width; x++) {
-    const i = (y * info.width + x) * info.channels
-    const luma = (data[i] + data[i + 1] + data[i + 2]) / 3
-    const a = Math.max(0, Math.min(1, (BG_LUMA - luma) / (BG_LUMA - INK_LUMA)))
-    const v = Math.round(a * 255)
-    alpha[y * info.width + x] = v
-    if (v > 40) {
-      minX = Math.min(minX, x)
-      maxX = Math.max(maxX, x)
-      minY = Math.min(minY, y)
-      maxY = Math.max(maxY, y)
-    }
+  // favicon.ico con dos PNG adentro (16 y 32): los navegadores modernos lo aceptan
+  const pngs = [files['favicon-16.png'], files['favicon-32.png']]
+  const sizes = [16, 32]
+  const header = Buffer.alloc(6)
+  header.writeUInt16LE(1, 2) // tipo: icono
+  header.writeUInt16LE(pngs.length, 4)
+  let offset = 6 + 16 * pngs.length
+  const entries = pngs.map((png, i) => {
+    const e = Buffer.alloc(16)
+    e[0] = sizes[i]
+    e[1] = sizes[i]
+    e.writeUInt16LE(1, 4) // planos
+    e.writeUInt16LE(32, 6) // bits por pixel
+    e.writeUInt32LE(png.length, 8)
+    e.writeUInt32LE(offset, 12)
+    offset += png.length
+    return e
+  })
+  writeFileSync(`${OUT}/favicon.ico`, Buffer.concat([header, ...entries, ...pngs]))
+
+  for (const name of [...Object.keys(files), 'favicon.ico']) {
+    console.log(`${name.padEnd(24)} ${statSync(`${OUT}/${name}`).size} bytes`)
   }
 }
-const crop = { left: minX, top: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
-console.log(`Monograma detectado: ${crop.width}x${crop.height}px`)
 
-// Glifo de un color, con la mascara como canal alfa, recortado justo al trazo
-const glyph = (color, height) =>
-  sharp(
-    Buffer.concat([
-      ...Array.from({ length: info.width * info.height }, (_, p) =>
-        Buffer.from([color.r, color.g, color.b, alpha[p]])
-      ),
-    ]),
-    { raw: { width: info.width, height: info.height, channels: 4 } }
-  )
-    .extract(crop)
-    .resize({ height: Math.round(height), kernel: 'lanczos3' })
-    .png()
-    .toBuffer()
-
-const square = (size, radiusPct) => {
-  const r = Math.round(size * radiusPct)
-  return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${r}" fill="rgb(${BRAND.r},${BRAND.g},${BRAND.b})"/></svg>`
-  )
-}
-
-// glyphRatio: alto del monograma respecto al icono. Los maskable necesitan margen (zona segura).
-const icon = async (size, { radius = 0, glyphRatio = 0.6 } = {}) => {
-  const g = await glyph(CREAM, size * glyphRatio)
-  return sharp(square(size, radius))
-    .composite([{ input: g, gravity: 'centre' }])
-    .png({ compressionLevel: 9 })
-    .toBuffer()
-}
-
-const files = {
-  'icon-192.png': await icon(192, { radius: 0.22, glyphRatio: 0.62 }),
-  'icon-512.png': await icon(512, { radius: 0.22, glyphRatio: 0.62 }),
-  'icon-maskable-192.png': await icon(192, { glyphRatio: 0.5 }),
-  'icon-maskable-512.png': await icon(512, { glyphRatio: 0.5 }),
-  'apple-touch-icon.png': await icon(180, { glyphRatio: 0.6 }),
-  'favicon-32.png': await icon(32, { radius: 0.2, glyphRatio: 0.66 }),
-  'favicon-16.png': await icon(16, { radius: 0.2, glyphRatio: 0.7 }),
-  // Marca verde sobre fondo transparente para el login
-  'logo-mark.png': await glyph(BRAND, 240),
-}
-for (const [name, buf] of Object.entries(files)) writeFileSync(`${OUT}/${name}`, buf)
-
-// favicon.ico con dos PNG adentro (16 y 32): los navegadores modernos lo aceptan
-const pngs = [files['favicon-16.png'], files['favicon-32.png']]
-const sizes = [16, 32]
-const header = Buffer.alloc(6)
-header.writeUInt16LE(1, 2) // tipo: icono
-header.writeUInt16LE(pngs.length, 4)
-let offset = 6 + 16 * pngs.length
-const entries = pngs.map((png, i) => {
-  const e = Buffer.alloc(16)
-  e[0] = sizes[i]
-  e[1] = sizes[i]
-  e.writeUInt16LE(1, 4) // planos
-  e.writeUInt16LE(32, 6) // bits por pixel
-  e.writeUInt32LE(png.length, 8)
-  e.writeUInt32LE(offset, 12)
-  offset += png.length
-  return e
+main().catch((err) => {
+  console.error(err)
+  process.exitCode = 1
 })
-writeFileSync(`${OUT}/favicon.ico`, Buffer.concat([header, ...entries, ...pngs]))
-
-console.log(`Generados ${Object.keys(files).length + 1} archivos en ${OUT}/`)
