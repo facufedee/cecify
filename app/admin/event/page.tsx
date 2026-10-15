@@ -42,6 +42,12 @@ function Poster({ url, names, small = false }: { url: string; names: CoupleNames
       <p className={`text-neutral-600 ${small ? 'text-xs' : 'text-lg'}`}>Conocé gente de la fiesta y compartí las fotos de la noche</p>
       <Qr text={url} label="QR de la fiesta" className={`rounded-2xl bg-white ${small ? 'w-40 p-2.5' : 'w-[110mm] max-w-full p-4'}`} />
       <p className={`text-neutral-500 ${small ? 'text-[10px]' : 'text-sm'}`}>Abrí la cámara del celular y apuntá al código</p>
+      {/* Marca de la app al pie del cartel */}
+      <div className={`flex items-center justify-center ${small ? 'gap-1.5' : 'gap-2.5'}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/logo-mark.png" alt="" className={small ? 'h-6 w-6' : 'h-10 w-10'} />
+        <span className={`font-bold text-brand ${small ? 'text-xs' : 'text-lg'}`}>Lovify APP</span>
+      </div>
     </article>
   )
 }
