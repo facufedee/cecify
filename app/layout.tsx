@@ -8,13 +8,13 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Lovify',
+  title: 'Lovify APP',
   description: 'En esta fiesta donde se celebra el amor, encontrá el tuyo. Conocé a los invitados, chateá y compartí las fotos de la boda',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Lovify',
+    title: 'Lovify APP',
   },
   icons: {
     icon: [

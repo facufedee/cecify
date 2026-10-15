@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, LogOut } from 'lucide-react'
 import StepIndicator from '@/components/onboarding/StepIndicator'
 import PhotoSlot from '@/components/onboarding/PhotoSlot'
 import BioPicks from '@/components/profile/BioPicks'
 import ModeFields from '@/components/profile/ModeFields'
 import PhotoEditor from '@/components/photo/PhotoEditor'
-import { authFetch, getToken } from '@/lib/client-auth'
+import { authFetch, clearToken, getToken } from '@/lib/client-auth'
 import { PROFILE_ASPECTS, uploadPhoto } from '@/lib/client-photo'
 import {
   AGE_MAX,
@@ -91,6 +91,11 @@ export default function OnboardingPage() {
       })
       .catch(() => setReady(true))
   }, [router])
+
+  const logout = () => {
+    clearToken()
+    router.replace('/login')
+  }
 
   const steps: StepId[] = wantsMatch === false ? ['mode', 'you', 'photos'] : ['mode', 'you', 'photos', 'contact']
   const stepId = steps[step - 1]
@@ -184,21 +189,35 @@ export default function OnboardingPage() {
   return (
     <main className="min-h-screen bg-cream sm:py-8">
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white px-6 pb-8 pt-5 text-neutral-800 sm:min-h-[44rem] sm:rounded-[2rem] sm:shadow-sm">
-        <header className="relative flex h-10 items-center justify-center">
-          {step > 1 && (
-            <button
-              type="button"
-              onClick={() => {
-                setError(null)
-                setStep(step - 1)
-              }}
-              aria-label="Volver"
-              className="absolute left-0 flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <span className="text-lg font-semibold text-brand">Lovify</span>
+        <header className="relative flex h-10 items-center justify-between">
+          <div className="flex items-center gap-2">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setStep(step - 1)
+                }}
+                aria-label="Volver"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/logo-mark.png" alt="" className="h-6 w-6 object-contain" />
+              <span className="text-lg font-semibold text-brand">Lovify</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 transition"
+          >
+            <LogOut size={14} />
+            <span>Salir</span>
+          </button>
         </header>
 
         <div className="mt-6">

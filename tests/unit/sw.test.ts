@@ -78,7 +78,7 @@ describe('sw.js: push', () => {
     await fire('push', { data: { json: () => { throw new Error('no es json') } } })
     await fire('push', { data: null })
     expect(self.registration.showNotification).toHaveBeenCalledTimes(2)
-    expect(self.registration.showNotification.mock.calls[0][0]).toBe('Lovify')
+    expect(self.registration.showNotification.mock.calls[0][0]).toBe('Lovify APP')
   })
 })
 

@@ -110,7 +110,7 @@ export default function LoginPage() {
         <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icons/logo-mark.png" alt="" className="mx-auto h-20 w-auto" />
-          <h1 className="mt-3 text-2xl font-semibold text-[#4A7C59]">Lovify</h1>
+          <h1 className="mt-3 text-2xl font-semibold text-[#4A7C59]">Lovify APP</h1>
           {phase === 'guest' && title && (
             <p className="mt-1 text-sm text-neutral-500">
               Casamiento de <span className="font-medium text-neutral-700">{title}</span>
